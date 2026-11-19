@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: acik-yol-yarisi
+    runtime: node
+    plan: free
+    startCommand: node server.js
+    healthCheckPath: /healthz

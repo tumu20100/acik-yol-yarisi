@@ -1,0 +1,175 @@
+'use strict';
+/*
+  Açıq Yol Yarışı - oyun serveri.
+  Heç bir paket tələb etmir: yalnız Node.js (18 və ya yuxarı).
+  Oyun səhifəsini verir və sürücülərin vəziyyətini WebSocket ilə hamıya ötürür.
+*/
+const http = require('http');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const crypto = require('crypto');
+
+const PORT = process.env.PORT || 3000;
+const MAX_PLAYERS = 24;
+const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+const page = fs.readFileSync(path.join(__dirname, 'index.html'));
+
+const clients = new Map();
+let nextId = 1;
+
+const server = http.createServer((req, res) => {
+  const p = req.url.split('?')[0];
+  if (p === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end('ok'); return; }
+  if (p !== '/' && p !== '/index.html') { res.writeHead(404, { 'Content-Type': 'text/plain' }); res.end('Tapılmadı'); return; }
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+  res.end(page);
+});
+
+function frame(str) {
+  const payload = Buffer.from(str);
+  const n = payload.length;
+  let head;
+  if (n < 126) { head = Buffer.from([0x81, n]); }
+  else if (n < 65536) { head = Buffer.alloc(4); head[0] = 0x81; head[1] = 126; head.writeUInt16BE(n, 2); }
+  else { head = Buffer.alloc(10); head[0] = 0x81; head[1] = 127; head.writeBigUInt64BE(BigInt(n), 2); }
+  return Buffer.concat([head, payload]);
+}
+
+function send(c, obj) {
+  if (!c.open || c.socket.destroyed) return;
+  try { c.socket.write(frame(JSON.stringify(obj))); } catch (e) { /* ignore */ }
+}
+
+function broadcast(obj, except) {
+  const f = frame(JSON.stringify(obj));
+  for (const c of clients.values()) {
+    if (c === except || !c.open || c.socket.destroyed) continue;
+    try { c.socket.write(f); } catch (e) { /* ignore */ }
+  }
+}
+
+function num(v, lo, hi, d) {
+  return (typeof v === 'number' && isFinite(v)) ? Math.min(hi, Math.max(lo, v)) : d;
+}
+
+function clean(m) {
+  return {
+    n: typeof m.n === 'string' ? m.n.replace(/[^\p{L}\p{N} ._-]/gu, '').trim().slice(0, 14) : '',
+    k: Math.round(num(m.k, 0, 7, 0)),
+    m: Math.round(num(m.m, 0, 3, 0)),
+    p: Math.round(num(m.p, -1, 11, -1)),
+    w: Math.round(num(m.w, 0, 4, 0)),
+    s2: Math.round(num(m.s2, 0, 2, 0)),
+    g: Math.round(num(m.g, 0, 5, 0)),
+    y: num(m.y, -5, 400, 0),
+    x: num(m.x, -1500, 1500, 0),
+    z: num(m.z, -1500, 1500, 0),
+    h: num(m.h, -100, 100, 0),
+    v: num(m.v, -100, 100, 0),
+    s: num(m.s, -1, 1, 0),
+    f: m.f === 1 ? 1 : 0,
+    l: Math.round(num(m.l, 0, 9999, 0)),
+    b: (typeof m.b === 'number' && m.b > 0 && m.b < 3.6e6) ? Math.round(m.b) : null,
+    r: m.r === 1 ? 1 : 0
+  };
+}
+
+function close(c) {
+  if (!c.open) return;
+  c.open = false;
+  clients.delete(c.id);
+  try { c.socket.destroy(); } catch (e) { /* ignore */ }
+  if (c.state) broadcast({ t: 'l', i: c.id });
+}
+
+function handle(c, text) {
+  c.alive = true;
+  const now = Date.now();
+  if (now - c.last < 30) return;
+  c.last = now;
+  let m;
+  try { m = JSON.parse(text); } catch (e) { return; }
+  if (!m || typeof m !== 'object') return;
+  c.state = clean(m);
+  broadcast({ t: 'u', i: c.id, d: c.state }, c);
+}
+
+function parse(c) {
+  while (c.buf.length >= 2) {
+    const b0 = c.buf[0], b1 = c.buf[1];
+    const fin = (b0 & 0x80) !== 0, op = b0 & 0x0f, masked = (b1 & 0x80) !== 0;
+    let len = b1 & 0x7f, off = 2;
+    if (len === 126) {
+      if (c.buf.length < 4) return;
+      len = c.buf.readUInt16BE(2); off = 4;
+    } else if (len === 127) {
+      if (c.buf.length < 10) return;
+      const big = c.buf.readBigUInt64BE(2);
+      if (big > 8192n) { close(c); return; }
+      len = Number(big); off = 10;
+    }
+    if (!masked || len > 4096) { close(c); return; }
+    if (c.buf.length < off + 4 + len) return;
+    const mask = c.buf.subarray(off, off + 4);
+    const data = Buffer.from(c.buf.subarray(off + 4, off + 4 + len));
+    for (let i = 0; i < data.length; i++) data[i] ^= mask[i & 3];
+    c.buf = c.buf.subarray(off + 4 + len);
+    if (op === 0x8) { close(c); return; }
+    if (op === 0x9) {
+      if (data.length <= 125) { try { c.socket.write(Buffer.concat([Buffer.from([0x8a, data.length]), data])); } catch (e) { /* ignore */ } }
+      continue;
+    }
+    if (op === 0xA) { c.alive = true; continue; }
+    if (op !== 0x1 || !fin) continue;
+    handle(c, data.toString('utf8'));
+  }
+}
+
+server.on('upgrade', (req, socket) => {
+  const key = req.headers['sec-websocket-key'];
+  const path0 = req.url.split('?')[0];
+  if (path0 !== '/ws' || !key || String(req.headers.upgrade).toLowerCase() !== 'websocket' || clients.size >= MAX_PLAYERS) {
+    socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n');
+    socket.destroy();
+    return;
+  }
+  const accept = crypto.createHash('sha1').update(key + GUID).digest('base64');
+  socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
+  socket.setNoDelay(true);
+
+  const id = String(nextId++);
+  const c = { id, socket, open: true, state: null, last: 0, alive: true, buf: Buffer.alloc(0) };
+  clients.set(id, c);
+
+  const others = [];
+  for (const o of clients.values()) if (o !== c && o.state) others.push({ i: o.id, d: o.state });
+  send(c, { t: 'hello', i: id, peers: others });
+
+  socket.on('data', (chunk) => {
+    c.buf = Buffer.concat([c.buf, chunk]);
+    if (c.buf.length > 16384) { close(c); return; }
+    parse(c);
+  });
+  socket.on('close', () => close(c));
+  socket.on('error', () => close(c));
+  socket.on('end', () => close(c));
+});
+
+setInterval(() => {
+  for (const c of clients.values()) {
+    if (!c.alive) { close(c); continue; }
+    c.alive = false;
+    try { c.socket.write(Buffer.from([0x89, 0])); } catch (e) { /* ignore */ }
+  }
+}, 25000);
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log('Açıq Yol Yarışı serveri işləyir: http://localhost:' + PORT);
+  const nets = os.networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const n of nets[name] || []) {
+      if (n.family === 'IPv4' && !n.internal) console.log('Eyni Wi-Fi-dakı dostlar üçün: http://' + n.address + ':' + PORT);
+    }
+  }
+});
