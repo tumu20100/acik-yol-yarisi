@@ -117,10 +117,11 @@ body.touch.playing .pad{display:flex}
 @media (max-width:700px){
   :root{--mm:104px}
   #players{min-width:0;width:auto;max-width:170px}
-  #plist{display:none;position:absolute;left:0;top:calc(100% + 6px);min-width:190px;margin:0;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
-  #players.open #plist{display:grid}
+  #plist{margin:6px 0 0;gap:3px}
+  #plist li{font-size:11px}
+  #plist li:nth-child(n+5){display:none}
   #status{pointer-events:auto;cursor:pointer}
-  #race{left:var(--gl);transform:none;top:calc(var(--gt) + 46px);width:176px}
+  #race{left:var(--gl);transform:none;top:calc(var(--gt) + 118px);width:176px}
   #rTime{font-size:26px}
   #toast{top:calc(var(--gt) + 190px)}
   #sv{font-size:34px}
@@ -336,8 +337,6 @@ body.compact #tDone{margin-top:9px}
       <div id="rList" class="rlist" hidden></div>
       <button id="bMis" class="mb" type="button">Missiya (taksi / çatdırılma)</button>
       <button id="bCirc" class="mb" type="button">Dairəvi yarış (dostlarla)</button>
-      <button id="bLb" class="mb" type="button">Cədvəl</button>
-      <div id="lbList" hidden></div>
       <button id="bNight" class="mb" type="button">Vaxt: avtomatik</button>
       <button id="bSnd" class="mb" type="button">Səs: açıq</button>
       <button id="bRadio" class="mb" type="button">Radio: söndürülüb</button>
@@ -3011,6 +3010,7 @@ function featMarks(){
   var a=[];
   if(mis.on)a.push({x:mis.x,z:mis.z,c:mis.stage?'#2ee6a1':'#ffd23f',n:mis.stage?'Təhvil':'Götür'});
   if(circ.on){var t=circTarget();a.push({x:t.x,z:t.z,c:'#2ee6c5',n:'Keçid'});}
+  if(!mis.on&&!circ.on)for(var i=0;i<givers.length;i++)if(givers[i].on)a.push({x:givers[i].x,z:givers[i].z,c:'#ffd23f',n:givers[i].kind?'Çatdırılma':'Taksi'});
   return a;
 }
 var misTxt='';
@@ -3035,7 +3035,7 @@ function featHud(){
 }
 function featStep(dt,now){
   featWeather(dt);
-  if(live()){stepMission(dt);stepCircuit(dt);}
+  if(live()){stepMission(dt);stepCircuit(dt);npcStep(dt);}
   else if(circ.cd>0&&false){}
   featHud();
 }
@@ -3043,22 +3043,6 @@ function featMenu(){
   $('bMis').textContent=mis.on?'Missiyanı ləğv et':'Missiya (taksi / çatdırılma)';
   $('bCirc').textContent=circ.on?'Yarışı dayandır':'Dairəvi yarış (dostlarla)';
 }
-function showLb(){
-  var el=$('lbList');
-  if(!el.hidden){el.hidden=true;return;}
-  var rows=[{n:state.name+' (sən)',m:Math.floor(state.money),b:race.best}];
-  remotes.forEach(function(rc){rows.push({n:rc.name||'Sürücü',m:rc.mo||0,b:rc.best});});
-  rows.sort(function(a,b){return b.m-a.m;});
-  el.textContent='';
-  rows.slice(0,12).forEach(function(r,i){
-    var d=document.createElement('div');
-    d.textContent=(i+1)+'. '+r.n+' — '+fmtM(r.m)+' manat'+(r.b?' · parkur '+fmt(r.b):'');
-    el.appendChild(d);
-  });
-  if(rows.length<2){var d2=document.createElement('div');d2.textContent='Dostlar qoşulanda burada görünəcək.';el.appendChild(d2);}
-  el.hidden=false;
-}
-
 /* ---- təlimat ---- */
 var tutOn=false,tutWas=false;
 function showTut(){
@@ -3081,9 +3065,144 @@ $('tutGo').addEventListener('click',hideTut);
 $('bTut').addEventListener('click',function(){closeMenu();showTut();});
 $('bMis').addEventListener('click',function(){closeMenu();if(mis.on)cancelMission('Missiya ləğv edildi');else startMission();});
 $('bCirc').addEventListener('click',function(){closeMenu();if(circ.on)stopCircuit('Yarış dayandırıldı');else startCircuit();});
-$('bLb').addEventListener('click',showLb);
 $('bRadio').addEventListener('click',radioNext);
 $('bRain').addEventListener('click',toggleRain);
+
+/* ===================== NPC-lər ===================== */
+var PED_N=QUAL==='low'?10:QUAL==='medium'?14:20;
+var pedG=null,peds=[],givers=[],vendors=[],npcInit=false,npcMsgT=0;
+var SHIRT=[0xc0392b,0x2980b9,0x27ae60,0xf1c40f,0x8e44ad,0xe67e22,0x16a085,0xecf0f1,0xd35400,0x34495e];
+var SKINC=[0xf0c9a0,0xdca67a,0xb9825a,0x8d5a3b];
+function pedParts(){
+  if(pedG)return pedG;
+  pedG={torso:new THREE.BoxGeometry(0.46,0.62,0.26),head:new THREE.SphereGeometry(0.15,8,6),leg:new THREE.BoxGeometry(0.17,0.62,0.2),arm:new THREE.BoxGeometry(0.12,0.56,0.14),
+    pants:new THREE.MeshLambertMaterial({color:0x2c3440}),skins:SKINC.map(function(c){return new THREE.MeshLambertMaterial({color:c});}),shirts:SHIRT.map(function(c){return new THREE.MeshLambertMaterial({color:c});})};
+  return pedG;
+}
+function pedMake(shirtIdx){
+  var P=pedParts(),g=new THREE.Group(),sh=P.shirts[shirtIdx%P.shirts.length],sk=P.skins[Math.floor(Math.random()*P.skins.length)];
+  var t=new THREE.Mesh(P.torso,sh);t.position.y=1.14;t.castShadow=true;g.add(t);
+  var h=new THREE.Mesh(P.head,sk);h.position.y=1.62;g.add(h);
+  function limb(geo,mat,x,y,off){var pv=new THREE.Group();pv.position.set(x,y,0);var m=new THREE.Mesh(geo,mat);m.position.y=off;pv.add(m);g.add(pv);return pv;}
+  var o={g:g,legL:limb(P.leg,P.pants,-0.11,0.82,-0.31),legR:limb(P.leg,P.pants,0.11,0.82,-0.31),armL:limb(P.arm,sh,-0.3,1.4,-0.26),armR:limb(P.arm,sh,0.3,1.4,-0.26),ph:Math.random()*6};
+  g.visible=false;scene.add(g);return o;
+}
+function sidePos(ax,k,off,p){return ax===0?{x:p,z:k*100+off}:{x:k*100+off,z:p};}
+function pedRespawn(pd){
+  pd.ax=Math.random()<0.5?0:1;
+  var cz=pd.ax===0?car.z:car.x,cp=pd.ax===0?car.x:car.z;
+  pd.k=clamp(Math.round((cz+rr(-120,120))/100),-4,4);
+  pd.off=(Math.random()<0.5?-1:1)*10.4;
+  pd.p=clamp(cp+rr(-140,140),-390,390);
+  pd.dir=Math.random()<0.5?-1:1;pd.sp=rr(1.1,1.7);pd.down=0;pd.wait=0;
+  pd.o.g.rotation.z=0;pd.o.g.position.y=0;
+}
+function npcSetup(){
+  npcInit=true;
+  for(var i=0;i<PED_N;i++){var pd={o:pedMake(i+Math.floor(Math.random()*7))};pedRespawn(pd);peds.push(pd);}
+  for(var gi=0;gi<3;gi++){
+    var o=pedMake(3),gv={o:o,on:false,kind:gi%2,t:0,x:0,z:0,lab:null,beam:null};
+    var beam=new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,16,10,1,true),new THREE.MeshBasicMaterial({color:0xffd23f,transparent:true,opacity:0.32,side:THREE.DoubleSide,depthWrite:false}));
+    beam.position.y=8;o.g.add(beam);gv.beam=beam;givers.push(gv);
+  }
+  var vs=[];
+  STATIONS.forEach(function(st,i){
+    var cs=Math.cos(st.rot),sn=Math.sin(st.rot);
+    function W(lx,lz){return{x:st.x+lx*cs+lz*sn,z:st.z-lx*sn+lz*cs};}
+    var a=W(13,3),b=W(22,-2);
+    vs.push({x:a.x,z:a.z,h:st.rot-Math.PI/2,txt:'Benzinçi: Xoş gəlmisiniz! «Benzin doldur» düyməsinə bas',lab:'Benzinçi',sh:2});
+    vs.push({x:b.x,z:b.z,h:st.rot-Math.PI/2,txt:'Usta: Maşını modifiye edək? Narıncı dairədə dayan',lab:'Usta',sh:5});
+  });
+  vs.forEach(function(v){
+    var o=pedMake(v.sh);o.g.position.set(v.x,0,v.z);o.g.rotation.y=v.h;o.g.visible=true;
+    var lb=makeLabel(v.lab);lb.position.y=2.4;lb.scale.set(3.6,0.9,1);o.g.add(lb);
+    v.o=o;v.cd=0;vendors.push(v);
+  });
+}
+function giverSpawn(gv){
+  for(var i=0;i<30;i++){
+    var ax=Math.random()<0.5?0:1,k=Math.floor(Math.random()*7)-3,off=(Math.random()<0.5?-1:1)*10.4,p=(Math.floor(Math.random()*6)-3)*100+rr(30,70);
+    var q=sidePos(ax,k,off,p),d=Math.hypot(q.x-car.x,q.z-car.z);
+    if(d>160&&d<420){gv.x=q.x;gv.z=q.z;gv.on=true;gv.t=0;gv.kind=Math.random()<0.5?0:1;
+      gv.o.g.position.set(q.x,0,q.z);gv.o.g.visible=true;gv.beam.visible=true;
+      if(gv.lab)gv.o.g.remove(gv.lab);gv.lab=makeLabel(gv.kind?'Çatdırılma':'Taksi');gv.lab.position.y=2.5;gv.lab.scale.set(3.6,0.9,1);gv.o.g.add(gv.lab);
+      return;}
+  }
+  gv.on=false;gv.o.g.visible=false;
+}
+function missionFrom(gv){
+  var p=roadPoint(300,700,gv.x,gv.z);
+  mis.on=true;mis.stage=1;mis.kind=gv.kind;mis.dist=Math.hypot(p.x-gv.x,p.z-gv.z);mis.x=p.x;mis.z=p.z;mis.t=0;
+  mis.limit=Math.round(mis.dist/13+25);mis.reward=Math.round(60+mis.dist*0.45);
+  fmarkSet(mis.x,mis.z,0x2ee6a1);
+  toast((gv.kind?'Bağlama götürüldü':'Müştəri mindi')+' · yaşıl dairəyə apar');
+  gv.on=false;gv.o.g.visible=false;gv.t=-25;
+}
+function pedHit(pd){
+  pd.down=4;pd.o.g.rotation.z=Math.PI/2;pd.o.g.position.y=0.25;
+  var fine=Math.min(150,Math.floor(state.money));state.money-=fine;
+  car.v*=0.6;
+  toast('Piyadaya vurdun! Cərimə −'+fine+' manat');
+  crashEvent(Math.abs(car.v));
+}
+function carNearCross(cx,cz){
+  if(Math.abs(car.v)>2&&Math.hypot(car.x-cx,car.z-cz)<26)return true;
+  for(var i=0;i<ais.length;i++){var a=ais[i];if(Math.abs(a.v||0)>2&&Math.hypot(a.x-cx,a.z-cz)<24)return true;}
+  return false;
+}
+var npcOn=true;
+function npcStep(dt){
+  if(!npcOn)return;
+  if(!npcInit)npcSetup();
+  var far=Math.abs(car.x)>CITY+160||Math.abs(car.z)>CITY+160||race.on;
+  npcMsgT=Math.max(0,npcMsgT-dt);
+  var i,pd,q;
+  for(i=0;i<peds.length;i++){
+    pd=peds[i];var g=pd.o.g;
+    if(far){g.visible=false;continue;}
+    if(pd.down>0){pd.down-=dt;if(pd.down<=0){pedRespawn(pd);}g.visible=true;continue;}
+    var q0=sidePos(pd.ax,pd.k,pd.off,pd.p),dc=Math.hypot(q0.x-car.x,q0.z-car.z);
+    if(dc>180){pedRespawn(pd);}
+    var m=Math.round(pd.p/100)*100,dd=Math.abs(pd.p-m),ahead=(m-pd.p)*pd.dir>0,sp=pd.sp;
+    var cx=pd.ax===0?m:pd.k*100,cz=pd.ax===0?pd.k*100:m;
+    if(dd>9.6&&dd<14.5&&ahead&&carNearCross(cx,cz))sp=0;
+    else if(dd<=9.6)sp=3.0;
+    pd.p+=pd.dir*sp*dt;
+    if(Math.abs(pd.p)>395)pd.dir=-pd.dir;
+    q=sidePos(pd.ax,pd.k,pd.off,pd.p);
+    g.position.set(q.x,0,q.z);
+    g.rotation.y=pd.ax===0?(pd.dir>0?Math.PI/2:-Math.PI/2):(pd.dir>0?0:Math.PI);
+    g.visible=true;
+    var sw=sp>0?Math.sin(tAll*sp*3.2+pd.o.ph)*0.6:0;
+    pd.o.legL.rotation.x=sw;pd.o.legR.rotation.x=-sw;pd.o.armL.rotation.x=-sw*0.8;pd.o.armR.rotation.x=sw*0.8;
+    if(Math.abs(car.v)>5&&!state.garage){
+      var dx=q.x-car.x,dz=q.z-car.z;
+      if(dx*dx+dz*dz<2.6){pedHit(pd);}
+    }
+  }
+  for(i=0;i<givers.length;i++){
+    var gv=givers[i];
+    if(far){gv.o.g.visible=false;continue;}
+    if(!gv.on){gv.t+=dt;if(gv.t>=0)giverSpawn(gv);continue;}
+    gv.t+=dt;
+    var d=Math.hypot(gv.x-car.x,gv.z-car.z);
+    if(d>560||gv.t>200){giverSpawn(gv);continue;}
+    gv.o.g.visible=true;
+    gv.o.armR.rotation.z=-2.6+Math.sin(tAll*6)*0.35;gv.o.armR.rotation.x=0;
+    gv.o.g.rotation.y=Math.atan2(car.x-gv.x,car.z-gv.z);
+    if(d<11&&Math.abs(car.v)<7){
+      if(mis.on||circ.on||race.on){if(npcMsgT<=0){npcMsgT=6;toast('Əvvəlki missiyanı bitir');}}
+      else missionFrom(gv);
+    }
+  }
+  for(i=0;i<vendors.length;i++){
+    var v=vendors[i];
+    v.cd=Math.max(0,v.cd-dt);
+    v.o.armR.rotation.z=-2.4+Math.sin(tAll*3+i)*0.3;
+    v.o.g.visible=!far;
+    if(!far&&v.cd<=0&&Math.hypot(v.x-car.x,v.z-car.z)<13&&Math.abs(car.v)<9){v.cd=60;toast(v.txt);}
+  }
+}
 function openMenu(){
   if(!state.started||state.garage||state.menu)return;
   for(var k in keys)keys[k]=false;
@@ -3277,15 +3396,15 @@ function drawBigMap(now){
 })();
 var plistT=0;
 function updateList(){
-  var rows=[{n:state.name,k:state.color,b:race.best,me:true}];
-  remotes.forEach(function(rc){rows.push({n:rc.name||'Sürücü',k:rc.k,b:rc.best,me:false});});
-  rows.sort(function(a,b){if(a.b!==null&&b.b!==null)return a.b-b.b;if(a.b!==null)return -1;if(b.b!==null)return 1;return a.n<b.n?-1:1;});
+  var rows=[{n:state.name,k:state.color,m:Math.floor(state.money),me:true}];
+  remotes.forEach(function(rc){rows.push({n:rc.name||'Sürücü',k:rc.k,m:rc.mo||0,me:false,q:rc.q});});
+  rows.sort(function(a,b){return b.m-a.m||(a.n<b.n?-1:1);});
   var ul=$('plist');ul.textContent='';
-  rows.slice(0,8).forEach(function(r){
+  rows.slice(0,6).forEach(function(r,i){
     var li=document.createElement('li');if(r.me)li.className='me';
     var sw=document.createElement('b');sw.style.background=PALETTE[r.k];
-    var sp=document.createElement('span');sp.textContent=r.n+(r.me?' (sən)':'');
-    var em=document.createElement('em');em.textContent=r.b===null?'—':fmt(r.b);
+    var sp=document.createElement('span');sp.textContent=(i+1)+'. '+r.n+(r.me?' (sən)':'');
+    var em=document.createElement('em');em.textContent=(r.q>0&&r.q<9000?'🏁 ':'')+(r.m>0||r.me?fmtM(r.m):'—');
     li.appendChild(sw);li.appendChild(sp);li.appendChild(em);ul.appendChild(li);
   });
 }
