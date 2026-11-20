@@ -71,7 +71,9 @@ function clean(m) {
     f: m.f === 1 ? 1 : 0,
     l: Math.round(num(m.l, 0, 9999, 0)),
     b: (typeof m.b === 'number' && m.b > 0 && m.b < 3.6e6) ? Math.round(m.b) : null,
-    r: m.r === 1 ? 1 : 0
+    r: m.r === 1 ? 1 : 0,
+    q: Math.round(num(m.q, 0, 9999, 0)),
+    mo: Math.round(num(m.mo, 0, 1e9, 0))
   };
 }
 
