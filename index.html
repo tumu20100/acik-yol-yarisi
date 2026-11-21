@@ -304,6 +304,17 @@ body.compact #tDone{margin-top:9px}
 #menu .card{max-height:calc(100vh - 16px);overflow:auto}
 #lbList{display:grid;gap:4px;font-size:13px;padding:6px 4px;color:#d7e0e5}
 #lbList[hidden]{display:none}
+#fm{position:fixed;inset:0;z-index:58;display:grid;place-items:center;padding:12px;background:rgba(5,9,12,.82);touch-action:pan-y}
+#fm[hidden]{display:none}
+#fm .card{background:var(--panel,#111a20);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:520px;width:100%;max-height:calc(100vh - 24px);overflow:auto}
+#fm h1{margin:0 0 8px;font:800 22px var(--f-disp)}
+#fm h2{margin:14px 0 6px;font:700 13px var(--f-disp);letter-spacing:.06em;text-transform:uppercase;color:var(--signal)}
+#fm .fr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;line-height:1.35}
+#fm .fr button{flex:none;background:var(--signal);color:#1a1500;border:0;border-radius:8px;padding:7px 12px;font:700 13px var(--f-disp);cursor:pointer}
+#fm .fr button:disabled{opacity:.5}
+#fm .sw2{flex-wrap:wrap;justify-content:flex-start}
+#fm .sw2 button{background:rgba(255,255,255,.08);color:inherit;border:1px solid var(--line)}
+#fm .sw2 button[aria-pressed="true"]{background:var(--signal);color:#1a1500}
 #tut{position:fixed;inset:0;z-index:58;display:grid;place-items:center;padding:12px;background:rgba(5,9,12,.82);touch-action:pan-y}
 #tut[hidden]{display:none}
 #tut .card{background:var(--panel,#111a20);border:1px solid var(--line);border-radius:16px;padding:18px;max-width:520px;width:100%;max-height:calc(100vh - 24px);overflow:auto}
@@ -354,6 +365,9 @@ body.compact #tDone{margin-top:9px}
       <div id="rList" class="rlist" hidden></div>
       <button id="bMis" class="mb" type="button">Missiya (taksi / çatdırılma)</button>
       <button id="bCirc" class="mb" type="button">Dairəvi yarış (dostlarla)</button>
+      <button id="bDQ" class="mb" type="button">Tapşırıqlar</button>
+      <button id="bRep" class="mb" type="button">Təmir et</button>
+      <button id="bStyle" class="mb" type="button">Bəzək və satış</button>
       <button id="bCR" class="mb" type="button">Polis–Qaçaq: söndürülüb</button>
       <button id="bNight" class="mb" type="button">Vaxt: avtomatik</button>
       <button id="bSnd" class="mb" type="button">Səs: açıq</button>
@@ -387,7 +401,7 @@ body.compact #tDone{margin-top:9px}
   </div>
 </div>
 
-<div id="speedo" class="hud panel"><div id="sv">0</div><small>KM/S</small><div class="nbar"><i id="nb"></i></div></div>
+<div id="speedo" class="hud panel"><div id="sv">0</div><small>KM/S</small><div id="dmH" style="font-size:10px;line-height:1.1;margin-top:2px;color:#ff8a4a;font-weight:700"></div><div class="nbar"><i id="nb"></i></div></div>
 <div id="money" class="hud panel"><small>BALANS</small><div id="mv">0</div><span id="mr">+1 manat/san</span>
   <div id="fuelRow"><small>BENZİN</small> <b id="fv">100</b> L <span id="fArr">▲</span> <span id="fnear"></span><div class="fbar"><i id="fb"></i></div></div></div>
 <div id="help" class="hud panel"><kbd>W A S D</kbd> sür · <kbd>Boşluq</kbd> əl əyləci<br><kbd>Shift</kbd> nitro · <kbd>E</kbd> yarışı dayandır<br><kbd>R</kbd> bərpa · <kbd>C</kbd> kamera · <kbd>N</kbd> gecə · <kbd>G</kbd> qaraj · <kbd>T</kbd> modifiye (məntəqədə) · <kbd>X</kbd> xəritə (və ya mini xəritəyə toxun) · <kbd>F</kbd> benzin · <kbd>M</kbd> səs · <kbd>Esc</kbd> menyu</div>
@@ -395,6 +409,7 @@ body.compact #tDone{margin-top:9px}
 <div id="chatFeed" class="hud" aria-live="polite"></div>
 <form id="chatBar" hidden autocomplete="off"><input id="chatIn" type="text" maxlength="80" placeholder="Mesaj yaz…" enterkeyhint="send"><button class="mb primary" type="submit">Göndər</button><button id="chatX" class="mb" type="button" aria-label="Bağla">✕</button></form>
 <div id="mis" class="hud panel" hidden><b id="mT">MİSSİYA</b><div class="ms" id="mS">—</div><div class="mr"><svg id="mArr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#ffd23f"/></svg><span id="mD">—</span><span id="mX"></span></div></div>
+<div id="fm" hidden><div class="card"><h1 id="fmT"></h1><div id="fmB"></div><button id="fmX" class="mb primary" type="button" style="margin-top:12px;width:100%">Bağla</button></div></div>
 <div id="tut" hidden><div class="card"><h1>Necə oynanır</h1><ul>
 <li><b>Sür:</b> W A S D və ya ekrandakı düymələr. Boşluq əl əyləcidir, Shift nitrodur.</li>
 <li><b>Xəritə:</b> sağ yuxarıdakı mini xəritəyə toxun, böyük xəritə açılır.</li>
@@ -413,7 +428,7 @@ body.compact #tDone{margin-top:9px}
   <p>Yevlax şəhəri · açıq dünya · dostlarınla online sür</p>
   <div class="chips2"><i>Polis təqibi</i><i>Göy parkurları</i><i>Modifiye</i><i>Online dostlar</i></div>
   <button id="spGo" class="mb primary" type="button">OYNA</button>
-  <div id="spSub"></div></div></div>
+  <div id="spSub"></div></div><div id="verTag" style="position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;color:var(--dim);opacity:.8">Versiya V37 · zədə, tapşırıqlar, neon</div></div>
 
 <div id="padL" class="pad">
   <button class="pb" data-k="left" type="button" aria-label="Sola">◀</button>
@@ -1715,7 +1730,7 @@ function spinWheels(ud,v,dt,steer){
 }
 
 /* ---------- state ---------- */
-var state={started:false,name:'',color:1,model:0,pick:0,owned:[0],money:0,garage:false,menu:false,tune:false,map:false,mods:{},unl:{},fuels:{},best:{},filling:false};
+var state={started:false,name:'',color:1,model:0,pick:0,owned:[0],money:0,garage:false,menu:false,tune:false,map:false,mods:{},unl:{},fuels:{},best:{},filling:false,dmg:{},neon:0,kit:0,dq:null,sg:{}};
 var car={x:0,z:0,y:0,h:Math.PI/2,v:0,vx:0,vz:0,vl:0,vy:0,gv:0,air:false,pitch:0,steer:0,acc:0,obj:null};
 var keys={up:false,down:false,left:false,right:false,hb:false,boost:false};
 var nitro=1,boosting=false,shake=0,camH=car.h,camMode=0,muted=false;
@@ -1803,10 +1818,12 @@ var room=null,roomOk=false,roomPending=true,sendT=0;
 
 function pkey(n){return cleanName(n).toLowerCase();}
 var profs={};
+var DQD={mis:{t:'Missiya tamamla',n:3,r:400},km:{t:'Maşınla 5 km sür',n:5,r:300},top:{t:'Maşının maks. sürətinin 90%-nə çat',n:1,r:250},clean:{t:'Qəzasız 90 saniyə sür',n:90,r:350},tour:{t:'Turisti stadiona apar',n:1,r:600},track:{t:'Göy parkurunu bitir',n:1,r:600},circ:{t:'Dairəvi yarışı bitir',n:1,r:500}};
+var SGD={mis:{t:'İlk missiyanı tamamla',r:300},buy:{t:'Yeni maşın al',r:300},track:{t:'Göy parkurunu bitir',r:500},circ:{t:'Dairəvi yarışı bitir',r:400},tour:{t:'Turisti stadiona apar',r:400},catch:{t:'Polis–Qaçaqda qaçağı tut',r:500}};
 try{var po=JSON.parse(localStorage.getItem('acikyol2')||'null');if(po&&typeof po==='object'&&!Array.isArray(po))profs=po;}catch(e){}
 try{var oldSv=JSON.parse(localStorage.getItem('acikyol')||'null');if(oldSv&&oldSv.n&&!Object.keys(profs).length)profs[pkey(oldSv.n)]=oldSv;}catch(e){}
 function applyProfile(sv){
-  state.owned=[0];state.money=0;state.model=0;state.mods={};state.unl={};state.fuels={};state.best={};
+  state.owned=[0];state.money=0;state.model=0;state.mods={};state.unl={};state.fuels={};state.best={};state.dmg={};state.neon=0;state.kit=0;state.dq=null;state.sg={};
   if(!sv||typeof sv!=='object')return;
   try{
     if(typeof sv.c==='number'&&sv.c>=0&&sv.c<PALETTE.length)state.color=Math.floor(sv.c);
@@ -1814,6 +1831,14 @@ function applyProfile(sv){
     if(typeof sv.p==='number'&&isFinite(sv.p)&&sv.p>0)state.money=Math.min(sv.p,1e9);
     if(typeof sv.m==='number'&&state.owned.indexOf(sv.m)>=0)state.model=sv.m;
     if(sv.md&&typeof sv.md==='object'){for(var mk0 in sv.md){var mi0=Number(mk0);if(!(mi0>=0&&mi0<CARS.length)||!sv.md[mk0])continue;var o0=sv.md[mk0];state.mods[mi0]={p:clamp(Math.floor(num(o0.p,-1)),-1,PAINTS.length-1),w:clamp(Math.floor(num(o0.w,0)),0,4),s:clamp(Math.floor(num(o0.s,0)),0,2),g:clamp(Math.floor(num(o0.g,0)),0,5),e:clamp(Math.floor(num(o0.e,0)),0,3)};}}
+    if(sv.dg&&typeof sv.dg==='object'){for(var dk in sv.dg){var di=Number(dk),dv=sv.dg[dk];if(di>=0&&di<CARS.length&&typeof dv==='number'&&isFinite(dv))state.dmg[di]=clamp(dv,0,100);}}
+    if(typeof sv.nk==='number'&&sv.nk>0)state.kit=1;
+    if(typeof sv.ne==='number'&&sv.ne>=0&&sv.ne<=5)state.neon=Math.floor(sv.ne);
+    if(sv.sg&&typeof sv.sg==='object'){for(var gk in sv.sg)if(SGD&&SGD[gk]&&sv.sg[gk])state.sg[gk]=1;}
+    if(sv.dq&&typeof sv.dq==='object'&&typeof sv.dq.d==='string'&&Array.isArray(sv.dq.p)&&sv.dq.p.length===3&&Array.isArray(sv.dq.v)&&Array.isArray(sv.dq.c)){
+      var okp=sv.dq.p.every(function(x){return DQD&&DQD[x];});
+      if(okp)state.dq={d:sv.dq.d.slice(0,12),p:sv.dq.p.slice(),v:sv.dq.v.map(function(x){return typeof x==='number'&&isFinite(x)?x:0;}),c:sv.dq.c.map(function(x){return x?1:0;}),st:clamp(Math.floor(num(sv.dq.st,1)),1,30),ld:String(sv.dq.ld||sv.dq.d).slice(0,12)};
+    }
     if(Array.isArray(sv.u))sv.u.forEach(function(x){if(typeof x==='string'&&/^[0-9]:[pwsge]:[0-9]{1,2}$/.test(x))state.unl[x]=1;});
     if(sv.bt&&typeof sv.bt==='object'){for(var bk in sv.bt){var bi=Number(bk),bv=sv.bt[bk];if(bi>=0&&bi<TRACKS.length&&typeof bv==='number'&&isFinite(bv)&&bv>0)state.best[bi]=bv;}}
     if(sv.f&&typeof sv.f==='object'){for(var fk in sv.f){var fi0=Number(fk),fv0=sv.f[fk];if(fi0>=0&&fi0<CARS.length&&typeof fv0==='number'&&isFinite(fv0))state.fuels[fi0]=clamp(fv0,0,100);}}
@@ -1899,7 +1924,7 @@ function save(){
   try{
     var k=pkey(state.name);if(!k)return;
     delete profs[k];
-    profs[k]={n:state.name,c:state.color,m:state.model,ts:Date.now(),p:Math.floor(state.money*100)/100,o:state.owned,md:state.mods,u:Object.keys(state.unl),f:state.fuels,bt:state.best};
+    profs[k]={n:state.name,c:state.color,m:state.model,ts:Date.now(),p:Math.floor(state.money*100)/100,o:state.owned,md:state.mods,u:Object.keys(state.unl),f:state.fuels,bt:state.best,dg:state.dmg,ne:state.neon,nk:state.kit,sg:state.sg,dq:state.dq};
     var ks=Object.keys(profs);while(ks.length>20){delete profs[ks.shift()];}
     localStorage.setItem('acikyol2',JSON.stringify(profs));localStorage.setItem('acikyol2_last',k);
   }catch(e){}
@@ -1942,7 +1967,7 @@ function refreshGarage(){
 function buy(i){
   var cd=CARS[i];if(!cd||own(i))return;
   if(Math.floor(state.money)<cd.price){toast('Pul çatmır');return;}
-  state.money-=cd.price;state.owned.push(i);save();refreshGarage();toast(cd.n+' alındı');
+  state.money-=cd.price;state.owned.push(i);save();evt('buy');refreshGarage();toast(cd.n+' alındı');
 }
 $('buyBtn').addEventListener('click',function(){buy(state.pick);});
 
@@ -2023,7 +2048,7 @@ function raceStep(now){
       state.money+=tr.reward;
       var rec=(old===undefined||ms<old);if(rec)state.best[race.ti]=ms;
       toast(tr.n+' göy parkuru bitdi! +'+tr.reward+' manat · '+fmt(ms)+(rec?' (yeni rekord)':''));
-      save();stopRace();
+      evt('track');save();stopRace();
     }else toast('Keçid '+(race.idx-1)+'/'+(race.cps.length-1));
   }
 }
@@ -2159,6 +2184,7 @@ function stepCar(dt){
   boosting=keys.boost&&nitro>0.02&&thr>0&&!car.air;
   nitro=clamp(nitro+(boosting?-0.28:0.09)*dt,0,1);
   var maxS=(boosting?1.2:1)*CM.kmh/3.6*(1+0.04*MOD(state.model).e)*(grass?0.62:1);
+  var DM=dmgOf();maxS*=1-0.3*DM/100;
   var fx=Math.sin(car.h),fz=Math.cos(car.h),lx=Math.cos(car.h),lz=-Math.sin(car.h);
   var vf=car.vx*fx+car.vz*fz;
   /* steering turns the heading first; the velocity keeps its direction, which is what makes the car slide */
@@ -2170,13 +2196,13 @@ function stepCar(dt){
   vf=car.vx*fx+car.vz*fz;
   var vl=car.vx*lx+car.vz*lz;
   if(!car.air){
-    if(thr>0){vf+=(boosting?42:24)*CM.acc*(1+0.08*MOD(state.model).e)*dt*Math.max(0,1-vf/maxS);}
+    if(thr>0){vf+=(boosting?42:24)*CM.acc*(1-0.25*DM/100)*(1+0.08*MOD(state.model).e)*dt*Math.max(0,1-vf/maxS);}
     else if(thr<0){if(vf>0.8)vf-=52*dt;else vf-=13*dt*Math.max(0,1+vf/12);}
     else{var fr=6*dt;if(Math.abs(vf)<=fr)vf=0;else vf-=(vf>0?1:-1)*fr;}
     if(keys.hb)vf*=Math.max(0,1-0.9*dt);
     if(vf>maxS)vf-=(vf-maxS)*2.2*dt;
     if(grass)vf*=Math.max(0,1-0.35*dt);
-    var grip=(keys.hb?2.4:(grass?4.5:9.5))*(1-Math.min(0.3,Math.abs(vf)/160));
+    var grip=(keys.hb?2.4:(grass?4.5:9.5))*(1-Math.min(0.3,Math.abs(vf)/160))*(1-0.3*wx.rain);
     vl*=Math.exp(-grip*dt);
   }
   car.vx=fx*vf+lx*vl;car.vz=fz*vf+lz*vl;
@@ -2205,6 +2231,7 @@ function stepCar(dt){
     car.x+=nx*pen;car.z+=nz*pen;
     var vn=car.vx*nx+car.vz*nz;
     if(vn<0){
+      if(-vn>3)addDmg(-vn*(soft?0.35:0.9));
       if((!soft||ev)&&-vn>(soft?4.5:6))crashEvent(-vn);
       shake=Math.max(shake,Math.min(1,-vn/30));
       var e=soft?0:0.25;
@@ -2697,6 +2724,7 @@ function applyPresence(rc,pr){
   rc.tx=num(pr.x,rc.tx);rc.tz=num(pr.z,rc.tz);rc.th=num(pr.h,rc.th);rc.ty=clamp(num(pr.y,0),-2,400);rc.tv=clamp(num(pr.v,0),-30,80);
   rc.st=clamp(num(pr.s,0),-1,1);rc.fl=pr.f===1;rc.laps=num(pr.l,0);rc.best=(typeof pr.b==='number'&&pr.b>0)?pr.b:null;rc.racing=pr.r===1;
   var oq=rc.q||0;rc.q=num(pr.q,0);rc.mo=num(pr.mo,0);
+  rc.ne=clamp(Math.floor(num(pr.ne,0)),0,5);
   var oro=rc.ro||0;rc.ro=clamp(Math.floor(num(pr.ro,0)),0,2);
   if(cr.role===1&&oro===2&&rc.ro===1&&Math.hypot(car.x-rc.x,car.z-rc.z)<40){try{crCatch(rc);}catch(e){}}
   if(rc.q>0&&rc.q<9000&&oq===0&&!circ.on&&rc.name)toast(rc.name+' dairəvi yarışa başladı (Menyu › Dairəvi yarış)');
@@ -2777,7 +2805,7 @@ setStatus();netNote();
 function sendPresence(){
   if(!room||!state.started)return;
   try{
-    var p=room.presence({n:state.name,k:state.color,m:state.model,p:MOD(state.model).p,w:MOD(state.model).w,s2:MOD(state.model).s,g:MOD(state.model).g,y:Math.round(car.y*10)/10,x:Math.round(car.x*10)/10,z:Math.round(car.z*10)/10,h:Math.round(car.h*100)/100,v:Math.round(car.v*10)/10,s:Math.round(car.steer*10)/10,f:boosting?1:0,l:race.laps,b:race.best===null?null:Math.round(race.best),r:race.on?1:0,q:circQ(),mo:Math.floor(state.money),ro:cr.role});
+    var p=room.presence({n:state.name,k:state.color,m:state.model,p:MOD(state.model).p,w:MOD(state.model).w,s2:MOD(state.model).s,g:MOD(state.model).g,y:Math.round(car.y*10)/10,x:Math.round(car.x*10)/10,z:Math.round(car.z*10)/10,h:Math.round(car.h*100)/100,v:Math.round(car.v*10)/10,s:Math.round(car.steer*10)/10,f:boosting?1:0,l:race.laps,b:race.best===null?null:Math.round(race.best),r:race.on?1:0,q:circQ(),mo:Math.floor(state.money),ro:cr.role,ne:state.kit?state.neon:0});
     if(p&&p.catch)p.catch(function(){});
   }catch(e){}
 }
@@ -2804,10 +2832,10 @@ function audioStart(){
 function audioUpdate(thr){
   if(!actx)return;
   try{
-    var t=actx.currentTime,sp=Math.min(1,Math.abs(car.v)/50),on=state.started&&!muted;
-    var gear=Math.min(5,Math.floor(sp*6)),inG=sp*6-gear;
+    var t=actx.currentTime,sp=Math.min(1,Math.abs(car.v)/((CARS[state.model]||CARS[0]).kmh/3.6)),sn=SND[state.model]||SND[0],on=state.started&&!muted;
+    var gear=Math.min(sn.g-1,Math.floor(sp*sn.g)),inG=sp*sn.g-gear,dm=dmgOf();
     var rpm=0.25+inG*0.75*(thr>0?1:0.7);
-    osc.frequency.setTargetAtTime(48+rpm*110+gear*9+(boosting?25:0),t,0.04);
+    osc.frequency.setTargetAtTime(sn.b+rpm*sn.f+gear*9+(boosting?25:0)+(dm>40?(Math.floor(t*14)%2)*9*dm/100:0),t,0.04);
     filt.frequency.setTargetAtTime(350+rpm*900+(thr>0?300:0),t,0.06);
     gain.gain.setTargetAtTime(on?0.028+(thr>0?0.02:0)+rpm*0.01:0,t,0.08);
     var slip=Math.abs(car.vl);
@@ -2925,6 +2953,16 @@ function begin(){
   room.cloud(msg,function(m){
     cloud.busy=false;$('go').disabled=false;
     var r=m&&m.r;
+    if(r==='nouser'&&!reg&&profs[key]){
+      /* server hesabı silinib (Render diski müvəqqətidir): yerli məlumatdan bərpa et */
+      var d2=profs[key];cloud.busy=true;$('go').disabled=true;
+      room.cloud({t:'rg',n:nm,pin:pin,d:d2},function(m2){
+        cloud.busy=false;$('go').disabled=false;
+        if(!m2||m2.r!=='ok'){toast(AC_ERR[m2&&m2.r]||AC_ERR.off);return;}
+        cloudLinked(nm,pin);toast('Server hesabı tapılmadı, bu cihazdakı məlumatdan bərpa olundu');begin0();
+      });
+      return;
+    }
     if(r!=='ok'){toast(AC_ERR[r]||AC_ERR.off);return;}
     if(!reg&&m.d)cloudAdopt(m.d,key);
     else if(reg)profs[key]=msg.d;
@@ -3144,6 +3182,7 @@ function stepMission(dt){
       fmarkSet(mis.x,mis.z,0x2ee6a1);toast(mis.kind===2?'Turist götürüldü: '+mis.spot+' (yaşıl dairə)':(mis.kind?'Yük':'Müştəri')+' götürüldü, yaşıl dairəyə apar');
     }else{
       var bonus=mis.t<mis.limit*0.6,r=Math.round(mis.reward*(bonus?1.4:1));
+      evt('mis');if(mis.kind===2)evt('tour');
       state.money+=r;save();toast('Missiya tamamlandı! +'+r+' manat'+(bonus?' (sürətli bonus)':''));cancelMission();
     }
   }
@@ -3186,7 +3225,7 @@ function stepCircuit(dt){
     circ.n++;
     if(circ.n>=CIRC.length*CLAPS){
       var pl=circPlace(),r=pl.n<2?150:pl.p===1?400:pl.p===2?200:100;
-      state.money+=r;save();circ.fin=15;
+      evt('circ');state.money+=r;save();circ.fin=15;
       toast('Finiş! '+pl.p+'-ci yer ('+pl.n+' nəfərdən) · '+fmt(circ.t*1000)+' · +'+r+' manat');
       stopCircuit();return;
     }
@@ -3227,15 +3266,16 @@ function featHud(){
 function featStep(dt,now){
   try{chatHook();}catch(e){}
   featWeather(dt);
-  if(live()){stepMission(dt);stepCircuit(dt);npcStep(dt);stepCR(dt);}
+  if(live()){stepMission(dt);stepCircuit(dt);npcStep(dt);stepCR(dt);dqStep(dt);}
   else if(circ.cd>0&&false){}
-  crBars();
+  crBars();try{featVis(dt);}catch(e){}
   featHud();
 }
 function featMenu(){
   $('bMis').textContent=mis.on?'Missiyanı ləğv et':'Missiya (taksi / çatdırılma)';
   $('bCirc').textContent=circ.on?'Yarışı dayandır':'Dairəvi yarış (dostlarla)';
   $('bCR').textContent='Polis–Qaçaq: '+crTxt[cr.role];
+  var dd=Math.round(dmgOf());$('bRep').textContent=dd>=1?'Təmir et ('+dd+'% zədə · '+fmtM(repairCost())+' manat)':'Təmir (maşın salamdır)';
 }
 /* ===================== polis–qaçaq ===================== */
 var crTxt=['söndürülüb','Qaçaq','Polis'],CRH=[1.48,1.2,1.42,1.45];
@@ -3251,7 +3291,7 @@ function crSet(v){
   sendPresence();
 }
 function crCatch(rc){
-  cr.catches++;state.money+=500;save();
+  cr.catches++;state.money+=500;save();evt('catch');
   toast('Qaçağı tutdun: '+(rc.name||'Sürücü')+' · +500 manat');
 }
 function crNearest(role){
@@ -3311,6 +3351,154 @@ function crHud(){
   var k=t1+'|'+t2+'|'+t3;
   if(k!==crLast){crLast=k;misTxt='';$('mT').textContent=t1;$('mS').textContent=t2;$('mX').textContent=t3;}
 }
+/* ===================== zədə, bəzək, tapşırıqlar ===================== */
+var NEONS=[0,0x2f9bff,0xff3fa4,0x2ee6a1,0xff3b30,0xa06bff],NEONN=['Söndürülüb','Mavi','Çəhrayı','Yaşıl','Qırmızı','Bənövşəyi'];
+var cleanT=0,dqAcc=0,topDone=false,dqT=0,smk=[],smkN=0;
+function dmgOf(m){return state.dmg[m===undefined?state.model:m]||0;}
+function addDmg(x){
+  if(race.on||!state.started||state.garage)return;
+  var m=state.model,o=dmgOf(m),n=Math.min(100,o+x);state.dmg[m]=n;cleanT=0;
+  if(o<50&&n>=50)toast('Maşın zədələndi, sürət azalır. Menyu › Təmir');
+  if(o<80&&n>=80)toast('Maşın çox zədəlidir! Menyu › Təmir');
+}
+function repairCost(){return Math.ceil(dmgOf()*(2+CARS[state.model].price/6000));}
+function doRepair(){
+  var d=dmgOf();
+  if(d<1){toast('Maşın salamdır');return;}
+  if(Math.abs(car.v)>2){toast('Təmir üçün maşını saxla');return;}
+  var c=repairCost();
+  if(state.money<c){toast('Pul çatmır. Təmir '+fmtM(c)+' manat');return;}
+  state.money-=c;state.dmg[state.model]=0;save();toast('Maşın təmir edildi (−'+fmtM(c)+' manat)');
+}
+function dmgSmoke(dt){
+  var D=dmgOf(),i,s;
+  if(!smk.length){
+    for(i=0;i<10;i++){var m=new THREE.Mesh(new THREE.SphereGeometry(0.5,6,5),new THREE.MeshBasicMaterial({color:0x808080,transparent:true,opacity:0}));m.visible=false;scene.add(m);smk.push({m:m,t:9,x:0,y:0,z:0});}
+  }
+  smkN-=dt;
+  if(D>55&&state.started&&!state.menu&&!state.garage&&smkN<=0){
+    smkN=0.14-0.0009*D;
+    for(i=0;i<smk.length;i++)if(smk[i].t>=1.4){s=smk[i];s.t=0;s.x=car.x+Math.sin(car.h)*1.8;s.z=car.z+Math.cos(car.h)*1.8;s.y=car.y+1.1;s.m.material.color.setHex(D>80?0x2a2a2a:0x8a8a8a);s.m.visible=true;break;}
+  }
+  for(i=0;i<smk.length;i++){
+    s=smk[i];if(s.t>=1.4)continue;
+    s.t+=dt;if(s.t>=1.4){s.m.visible=false;continue;}
+    var k=s.t/1.4,sc=0.5+k*1.7;s.y+=dt*1.7;
+    s.m.position.set(s.x,s.y,s.z);s.m.scale.set(sc,sc,sc);s.m.material.opacity=0.5*(1-k);
+  }
+}
+function neonSet(o,idx){
+  if(!o||!o.userData)return;
+  var g=o.userData.neon;
+  if(!idx){if(g){o.remove(g);o.userData.neon=null;}return;}
+  if(g&&o.userData.neonI===idx&&g.parent===o)return;
+  if(g)o.remove(g);
+  g=new THREE.Mesh(new THREE.PlaneGeometry(3.4,6.4),new THREE.MeshBasicMaterial({color:NEONS[idx],transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+  g.rotation.x=-Math.PI/2;g.position.y=0.07;o.add(g);o.userData.neon=g;o.userData.neonI=idx;
+}
+function featVis(dt){
+  neonSet(car.obj,state.kit?state.neon:0);
+  remotes.forEach(function(rc){neonSet(rc.obj,rc.ne||0);});
+  dmgSmoke(dt);
+  var d=Math.round(dmgOf()),el=$('dmH');
+  if(el){var t=d>=3?'ZƏDƏ '+d+'%':'';if(el.textContent!==t)el.textContent=t;}
+}
+/* ---- gündəlik tapşırıqlar ---- */
+function dayKey(d){d=d||new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function dqInit(){
+  if(!state.started)return;
+  var k=dayKey();if(state.dq&&state.dq.d===k)return;
+  var prev=state.dq,streak=1;
+  if(prev&&prev.ld){var y=new Date();y.setDate(y.getDate()-1);if(prev.ld===dayKey(y))streak=Math.min(30,(prev.st||1)+1);}
+  var pool=['mis','km','top','clean','tour','track','circ'],pick=[],seed=0,i;
+  for(i=0;i<k.length;i++)seed=(seed*31+k.charCodeAt(i))>>>0;
+  while(pick.length<3){seed=(seed*1664525+1013904223)>>>0;var id=pool.splice(seed%pool.length,1)[0];pick.push(id);}
+  state.dq={d:k,p:pick,v:[0,0,0],c:[0,0,0],st:streak,ld:k};
+  var b=Math.min(streak,7)*100;state.money+=b;save();
+  toast('Gündəlik bonus +'+b+' manat · ardıcıl '+streak+'-ci gün');
+}
+function evt(id,n,quiet){
+  n=n===undefined?1:n;var ch=false,i;
+  var q=state.dq;
+  if(q&&q.d===dayKey()){
+    for(i=0;i<3;i++)if(q.p[i]===id&&!q.c[i]){
+      q.v[i]+=n;var df=DQD[id];
+      if(q.v[i]>=df.n){q.c[i]=1;state.money+=df.r;toast('Tapşırıq tamam: '+df.t+' · +'+df.r+' manat');ch=true;}
+    }
+  }
+  var sg=SGD[id];
+  if(sg&&!state.sg[id]&&!quiet){state.sg[id]=1;state.money+=sg.r;toast('Məqsəd yerinə yetdi: '+sg.t+' · +'+sg.r+' manat');ch=true;}
+  if(ch)save();
+}
+function dqStep(dt){
+  dqT-=dt;if(dqT<=0){dqT=5;dqInit();}
+  dqAcc+=Math.abs(car.v)*dt;
+  if(dqAcc>=100){evt('km',dqAcc/1000,true);dqAcc=0;}
+  cleanT+=dt;if(cleanT>=5){evt('clean',5,true);cleanT-=5;}
+  var sp=Math.abs(car.v)*3.6,top=CARS[state.model].kmh;
+  if(!topDone&&sp>=top*0.9){topDone=true;evt('top',1,true);}
+  else if(topDone&&sp<top*0.5)topDone=false;
+}
+/* ---- pəncərə ---- */
+var fmOn=false,fmWas=false,fmKind='',sellArm=-1;
+function fmRow(parent,txt,btn,fn,dis){
+  var r=document.createElement('div');r.className='fr';
+  var s=document.createElement('span');s.textContent=txt;r.appendChild(s);
+  if(btn){var b=document.createElement('button');b.type='button';b.textContent=btn;b.disabled=!!dis;b.addEventListener('click',fn);r.appendChild(b);}
+  parent.appendChild(r);return r;
+}
+function fmHead(parent,txt){var h=document.createElement('h2');h.textContent=txt;parent.appendChild(h);}
+function fmRender(){
+  var B=$('fmB');B.textContent='';
+  if(fmKind==='dq'){
+    $('fmT').textContent='Tapşırıqlar';
+    dqInit();var q=state.dq;
+    fmHead(B,'Bu gün'+(q?' · ardıcıl '+q.st+'-ci gün':''));
+    if(q)for(var i=0;i<3;i++){var df=DQD[q.p[i]],pr=q.c[i]?'tamam':(df.n>=10?Math.floor(q.v[i]):Math.floor(q.v[i]*10)/10)+'/'+df.n;fmRow(B,(q.c[i]?'✓ ':'')+df.t+' ('+pr+') · '+df.r+' manat');}
+    fmHead(B,'Başlanğıc məqsədləri');
+    Object.keys(SGD).forEach(function(k){fmRow(B,(state.sg[k]?'✓ ':'')+SGD[k].t+' · '+SGD[k].r+' manat');});
+  }else{
+    $('fmT').textContent='Bəzək və satış';
+    fmHead(B,'Neon işıq');
+    if(!state.kit){fmRow(B,'Neon dəsti: maşının altında işıq · 1 500 manat','Al',function(){if(state.money<1500){toast('Pul çatmır');return;}state.money-=1500;state.kit=1;state.neon=1;save();fmRender();});}
+    else{
+      var r=fmRow(B,'Rəng seç');r.className='fr sw2';
+      NEONN.forEach(function(n,i){var b=document.createElement('button');b.type='button';b.textContent=n;b.setAttribute('aria-pressed',state.neon===i?'true':'false');b.addEventListener('click',function(){state.neon=i;save();fmRender();});r.appendChild(b);});
+    }
+    fmHead(B,'Maşın sat (qiymətin 60%-i)');
+    var any=false;
+    state.owned.forEach(function(i){
+      if(i===0)return;any=true;var cd=CARS[i],gain=Math.floor(cd.price*0.6);
+      fmRow(B,cd.n+' · '+fmtM(gain)+' manat',sellArm===i?'Əminsən? Bas':'Sat',function(){
+        if(sellArm!==i){sellArm=i;fmRender();return;}
+        sellArm=-1;sellCar(i);fmRender();
+      });
+    });
+    if(!any)fmRow(B,'Satılacaq maşın yoxdur (standart maşın satılmır)');
+  }
+}
+function sellCar(i){
+  if(i===0||!own(i))return;
+  var gain=Math.floor(CARS[i].price*0.6);
+  state.owned.splice(state.owned.indexOf(i),1);state.money+=gain;
+  delete state.mods[i];delete state.fuels[i];delete state.dmg[i];
+  if(state.model===i){state.model=0;rebuildCar(0);}
+  if(state.pick===i)state.pick=state.model;
+  save();toast(CARS[i].n+' satıldı (+'+fmtM(gain)+' manat)');
+}
+function showFM(kind){
+  if(fmOn)return;
+  fmOn=true;fmWas=state.menu;state.menu=true;fmKind=kind;sellArm=-1;
+  for(var k in keys)keys[k]=false;
+  fmRender();$('fm').hidden=false;
+}
+function hideFM(){if(!fmOn)return;fmOn=false;$('fm').hidden=true;state.menu=fmWas;}
+$('fmX').addEventListener('click',hideFM);
+$('bDQ').addEventListener('click',function(){closeMenu();showFM('dq');});
+$('bStyle').addEventListener('click',function(){closeMenu();showFM('st');});
+$('bRep').addEventListener('click',function(){closeMenu();doRepair();});
+var SND=[{b:48,f:110,g:5},{b:70,f:150,g:7},{b:56,f:95,g:5},{b:42,f:100,g:6}];
+
 /* ---- təlimat ---- */
 var tutOn=false,tutWas=false;
 function showTut(){

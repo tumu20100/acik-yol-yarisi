@@ -126,7 +126,8 @@ function clean(m) {
     r: m.r === 1 ? 1 : 0,
     q: Math.round(num(m.q, 0, 9999, 0)),
     mo: Math.round(num(m.mo, 0, 1e9, 0)),
-    ro: Math.round(num(m.ro, 0, 2, 0))
+    ro: Math.round(num(m.ro, 0, 2, 0)),
+    ne: Math.round(num(m.ne, 0, 5, 0))
   };
 }
 
