@@ -366,7 +366,6 @@ body.compact #tDone{margin-top:9px}
       <button id="bMis" class="mb" type="button">Missiya (taksi / çatdırılma)</button>
       <button id="bCirc" class="mb" type="button">Dairəvi yarış (dostlarla)</button>
       <button id="bDQ" class="mb" type="button">Tapşırıqlar</button>
-      <button id="bRep" class="mb" type="button">Təmir et</button>
       <button id="bStyle" class="mb" type="button">Bəzək və satış</button>
       <button id="bCR" class="mb" type="button">Polis–Qaçaq: söndürülüb</button>
       <button id="bNight" class="mb" type="button">Vaxt: avtomatik</button>
@@ -428,7 +427,7 @@ body.compact #tDone{margin-top:9px}
   <p>Yevlax şəhəri · açıq dünya · dostlarınla online sür</p>
   <div class="chips2"><i>Polis təqibi</i><i>Göy parkurları</i><i>Modifiye</i><i>Online dostlar</i></div>
   <button id="spGo" class="mb primary" type="button">OYNA</button>
-  <div id="spSub"></div></div><div id="verTag" style="position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;color:var(--dim);opacity:.8">Versiya V37 · zədə, tapşırıqlar, neon</div></div>
+  <div id="spSub"></div></div><div id="verTag" style="position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;color:var(--dim);opacity:.8">Versiya V39 · zədə, tapşırıqlar, neon</div></div>
 
 <div id="padL" class="pad">
   <button class="pb" data-k="left" type="button" aria-label="Sola">◀</button>
@@ -2231,7 +2230,7 @@ function stepCar(dt){
     car.x+=nx*pen;car.z+=nz*pen;
     var vn=car.vx*nx+car.vz*nz;
     if(vn<0){
-      if(-vn>3)addDmg(-vn*(soft?0.35:0.9));
+      if(-vn>5)addDmg(-vn*(soft?0.08:0.3));
       if((!soft||ev)&&-vn>(soft?4.5:6))crashEvent(-vn);
       shake=Math.max(shake,Math.min(1,-vn/30));
       var e=soft?0:0.25;
@@ -3275,7 +3274,6 @@ function featMenu(){
   $('bMis').textContent=mis.on?'Missiyanı ləğv et':'Missiya (taksi / çatdırılma)';
   $('bCirc').textContent=circ.on?'Yarışı dayandır':'Dairəvi yarış (dostlarla)';
   $('bCR').textContent='Polis–Qaçaq: '+crTxt[cr.role];
-  var dd=Math.round(dmgOf());$('bRep').textContent=dd>=1?'Təmir et ('+dd+'% zədə · '+fmtM(repairCost())+' manat)':'Təmir (maşın salamdır)';
 }
 /* ===================== polis–qaçaq ===================== */
 var crTxt=['söndürülüb','Qaçaq','Polis'],CRH=[1.48,1.2,1.42,1.45];
@@ -3355,8 +3353,10 @@ function crHud(){
 var NEONS=[0,0x2f9bff,0xff3fa4,0x2ee6a1,0xff3b30,0xa06bff],NEONN=['Söndürülüb','Mavi','Çəhrayı','Yaşıl','Qırmızı','Bənövşəyi'];
 var cleanT=0,dqAcc=0,topDone=false,dqT=0,smk=[],smkN=0;
 function dmgOf(m){return state.dmg[m===undefined?state.model:m]||0;}
+var dmgLast=0;
 function addDmg(x){
   if(race.on||!state.started||state.garage)return;
+  var nw=Date.now();if(nw-dmgLast<700)return;dmgLast=nw;
   var m=state.model,o=dmgOf(m),n=Math.min(100,o+x);state.dmg[m]=n;cleanT=0;
   if(o<50&&n>=50)toast('Maşın zədələndi, sürət azalır. Menyu › Təmir');
   if(o<80&&n>=80)toast('Maşın çox zədəlidir! Menyu › Təmir');
@@ -3496,7 +3496,6 @@ function hideFM(){if(!fmOn)return;fmOn=false;$('fm').hidden=true;state.menu=fmWa
 $('fmX').addEventListener('click',hideFM);
 $('bDQ').addEventListener('click',function(){closeMenu();showFM('dq');});
 $('bStyle').addEventListener('click',function(){closeMenu();showFM('st');});
-$('bRep').addEventListener('click',function(){closeMenu();doRepair();});
 var SND=[{b:48,f:110,g:5},{b:70,f:150,g:7},{b:56,f:95,g:5},{b:42,f:100,g:6}];
 
 /* ---- təlimat ---- */
@@ -3743,6 +3742,14 @@ function refreshTune(){
   var md=MOD(state.model);
   $('tCar').textContent=CARS[state.model].n;$('tBal').textContent=fmtM(Math.floor(state.money));
   var body=$('tBody');body.textContent='';
+  var rs=document.createElement('div');rs.className='tsec';
+  var rl=document.createElement('b');rl.textContent='Təmir';rs.appendChild(rl);
+  var rr=document.createElement('div');rr.className='chips';
+  var dd=Math.round(dmgOf()),rb=document.createElement('button');rb.type='button';rb.className='chip';
+  var rn=document.createElement('span');rn.textContent=dd>=1?'Təmir et · zədə '+dd+'%':'Maşın salamdır';rb.appendChild(rn);
+  if(dd>=1){var rp=document.createElement('span');rp.className='pr';rp.textContent=fmtM(repairCost());rb.appendChild(rp);}else rb.classList.add('na');
+  rb.addEventListener('click',function(){doRepair();refreshTune();});
+  rr.appendChild(rb);rs.appendChild(rr);body.appendChild(rs);
   tuneCats().forEach(function(cat){
     var sec=document.createElement('div');sec.className='tsec';
     var lb=document.createElement('b');lb.textContent=cat.t+(cat.k==='e'?' (+4% sürət, +8% təcil)':'');sec.appendChild(lb);
