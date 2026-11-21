@@ -112,6 +112,13 @@ body.touch.playing .pad{display:flex}
 #go:disabled{opacity:.5;cursor:not-allowed}
 .keys{margin:16px 0 0;padding:12px 0 0;border-top:1px solid var(--line);font-size:13px;line-height:1.8;color:var(--dim)}
 .keys kbd{font:600 11px var(--f-disp);background:rgba(255,255,255,.12);border-radius:5px;padding:1px 6px;color:var(--fg)}
+#acTabs{display:flex;gap:6px;margin-top:12px}
+#acTabs button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:inherit;font:600 14px var(--f-disp);cursor:pointer}
+#acTabs button[aria-pressed="true"]{background:var(--signal);color:#1a1500;border-color:transparent}
+#pin,#pin2{width:100%;margin-top:8px;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px;color:inherit;-webkit-user-select:text;user-select:text}
+#acSt{margin-top:8px;font-size:12.5px;line-height:1.4;color:var(--dim)}
+#acRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+#acRow button{background:none;border:1px solid var(--line);border-radius:8px;color:var(--dim);padding:6px 10px;font-size:12.5px;cursor:pointer}
 #netnote{margin-top:10px;font-size:13px;color:var(--dim);line-height:1.5}
 
 @media (max-width:700px){
@@ -347,6 +354,7 @@ body.compact #tDone{margin-top:9px}
       <div id="rList" class="rlist" hidden></div>
       <button id="bMis" class="mb" type="button">Missiya (taksi / çatdırılma)</button>
       <button id="bCirc" class="mb" type="button">Dairəvi yarış (dostlarla)</button>
+      <button id="bCR" class="mb" type="button">Polis–Qaçaq: söndürülüb</button>
       <button id="bNight" class="mb" type="button">Vaxt: avtomatik</button>
       <button id="bSnd" class="mb" type="button">Səs: açıq</button>
       <button id="bRadio" class="mb" type="button">Radio: söndürülüb</button>
@@ -424,6 +432,13 @@ body.compact #tDone{margin-top:9px}
     <label for="nm">Adın</label>
     <input id="nm" maxlength="14" autocomplete="off" placeholder="Sürücü adı">
     <div id="nmHint" style="margin-top:6px;font-size:12px;line-height:1.4;color:var(--dim)">Hər ad ayrı hesabdır: yeni ad 0 manatla və yalnız standart maşınla başlayır.</div>
+    <div id="pinW" hidden>
+      <div id="acTabs"><button id="acLogin" type="button" aria-pressed="true">Giriş</button><button id="acReg" type="button" aria-pressed="false">Qeydiyyat</button></div>
+      <input id="pin" type="password" maxlength="20" autocomplete="off" placeholder="Şifrə (ən azı 4 simvol)">
+      <input id="pin2" type="password" maxlength="20" autocomplete="off" placeholder="Şifrəni təkrarla" hidden>
+      <div id="acSt"></div>
+      <div id="acRow"><button id="acPw" type="button" hidden>Şifrəni dəyiş</button><button id="acOut" type="button" hidden>Hesabdan çıx</button><button id="acGuest" type="button">Hesabsız oyna</button></div>
+    </div>
     <label>Maşının rəngi</label>
     <div id="sw" role="group" aria-label="Maşının rəngi"></div>
     <label>Maşın</label>
@@ -1023,6 +1038,41 @@ function nearRamp(x,z){for(var i=0;i<ramps.length;i++){if(Math.abs(x-ramps[i].x)
     var m=new THREE.Mesh(g,mats);m.scale.set(p.w,p.h,p.l);m.position.set(p.x,0,p.z);m.rotation.y=p.d;
     m.castShadow=true;m.receiveShadow=true;scene.add(m);
   });
+})();
+
+/* ---------- yeni yer: stadion ---------- */
+var SPOTS=[{n:'Yevlax Stadionu',x:720,z:560}];
+(function(){
+  var r=rng(31337),i,j;
+  function bx(w,h,d,col){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),col);}
+  var matL=function(c){return new THREE.MeshLambertMaterial({color:c});};
+  var matB=function(c){return new THREE.MeshBasicMaterial({color:c});};
+  var po=function(c,o){return new THREE.MeshLambertMaterial({color:c,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});};
+  function flat(geo,mat,x,y,z,sx){var m=new THREE.Mesh(geo,mat);m.rotation.x=-Math.PI/2;m.position.set(x,y,z);if(sx)m.scale.x=sx;m.receiveShadow=true;scene.add(m);return m;}
+
+  /* --- stadion --- */
+  var sx0=720,sz0=560;
+  flat(new THREE.CircleGeometry(22,40),po(0x3f8f3a),sx0,0.05,sz0,1.8);
+  flat(new THREE.RingGeometry(22,36,48),po(0xb5532f),sx0,0.05,sz0,1.8);
+  flat(new THREE.RingGeometry(29,29.5,48),po(0xf2f2f2),sx0,0.06,sz0,1.8);
+  flat(new THREE.PlaneGeometry(2,26),po(0xf2f2f2),sx0,0.06,sz0);
+  var sR=matL(0xc0392b),sW=matL(0xe8e8e8),sB=matL(0x2f5fa8);
+  function stand(cx,cz,w,d,ox,oz){
+    var a=ox?bx(d,5,w,sR):bx(w,5,d,sR),b=ox?bx(d*0.5,9,w,sB):bx(w,9,d*0.5,sB);
+    a.position.set(cx,2.5,cz);b.position.set(cx+ox*d*0.25,4.5,cz+oz*d*0.25);
+    a.castShadow=a.receiveShadow=b.castShadow=b.receiveShadow=true;scene.add(a);scene.add(b);
+  }
+  stand(sx0,sz0-47,130,10,0,-1);stand(sx0,sz0+47,130,10,0,1);
+  stand(sx0-80,sz0,50,10,-1,0);stand(sx0+80,sz0,50,10,1,0);
+  solidC(sx0,sz0-47,65,5);solidC(sx0,sz0+47,65,5);solidC(sx0-80,sz0,5,25);solidC(sx0+80,sz0,5,25);
+  var lm=matB(0xfff2b0),pm=matL(0x9aa3a8);
+  [[-75,-42],[75,-42],[-75,42],[75,42]].forEach(function(p){
+    var pl=bx(1.2,30,1.2,pm);pl.position.set(sx0+p[0],15,sz0+p[1]);scene.add(pl);
+    var hd=bx(5,2,3,lm);hd.position.set(sx0+p[0],30.5,sz0+p[1]);scene.add(hd);
+    solidC(sx0+p[0],sz0+p[1],1,1);
+  });
+  landmarkLabel('Yevlax Stadionu',sx0,40,sz0);
+
 })();
 
 /* ---------- street lamps ---------- */
@@ -1748,6 +1798,7 @@ var race={on:false,pieces:null,minY:0,idx:0,running:false,t:0,limit:0,cd:0,cdLas
 var raceFx={gates:[],arm:false,tp:0,tpLast:0,built:false};
 var RCOL=[0x35d07f,0xffc233,0xff4d4d];
 var remotes=new Map();
+var cr={role:0,near:0,surv:0,catches:0,had:false,msgT:0};
 var room=null,roomOk=false,roomPending=true,sendT=0;
 
 function pkey(n){return cleanName(n).toLowerCase();}
@@ -1775,18 +1826,84 @@ applyProfile(sv0);
 state.pick=state.model;
 if(!state.name)state.name='Sürücü'+(100+Math.floor(Math.random()*900));
 $('nm').value=state.name;
-
 var ORDER=[0,2,3,1],saveT=0;
 function fmtM(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
 function own(i){return state.owned.indexOf(i)>=0;}
+var cloud={pin:'',key:'',last:0,busy:false,guest:false,saved:0},pins={},acMode='login';
+try{pins=JSON.parse(localStorage.getItem('acikyol2_pin')||'{}')||{};}catch(e){pins={};}
+function cloudAvail(){return typeof room!=='undefined'&&!!room&&typeof room.cloud==='function';}
+function acRefresh(){
+  var w=$('pinW');if(!w)return;
+  var logged=!!cloud.pin,reg=acMode==='reg'&&!logged&&!cloud.guest;
+  $('acTabs').hidden=logged||cloud.guest;$('pin').hidden=logged||cloud.guest;
+  $('pin2').hidden=!(reg||logged);
+  $('pin2').placeholder=logged?'Yeni şifrə (dəyişmək üçün)':'Şifrəni təkrarla';
+  $('acLogin').setAttribute('aria-pressed',acMode==='login'?'true':'false');$('acReg').setAttribute('aria-pressed',acMode==='reg'?'true':'false');
+  $('acOut').hidden=!logged;$('acPw').hidden=!logged;
+  $('acGuest').textContent=cloud.guest?'Hesaba qayıt':'Hesabsız oyna';$('acGuest').hidden=logged;
+  var t;
+  if(logged)t='Hesab: '+(profs[cloud.key]&&profs[cloud.key].n||cloud.key)+'. Balans və maşınlar serverdə saxlanır'+(cloud.saved?' (son saxlama '+new Date(cloud.saved).toTimeString().slice(0,5)+')':'')+'.';
+  else if(cloud.guest)t='Hesabsız rejim: irəliləyiş yalnız bu cihazda qalır.';
+  else t=reg?'Yeni hesab: ad (3+ simvol) və şifrə yaz. Bu adla bu cihazdakı irəliləyiş hesaba köçürülür.':'Hesaba daxil ol: balans və maşınların hər cihazda eynidir.';
+  $('acSt').textContent=t;
+  if(!state.started&&own(state.pick))$('go').textContent=acGoTxt();
+}
+function acGoTxt(){
+  if(!cloudAvail()||$('pinW').hidden||cloud.pin||cloud.guest)return 'Sürməyə başla';
+  return acMode==='reg'?'Qeydiyyatdan keç və başla':'Daxil ol və başla';
+}
+function cloudSync(force){
+  if(!cloud.pin||!cloudAvail())return;
+  var k=pkey(state.name);if(k!==cloud.key||!profs[k])return;
+  var now=Date.now();if(!force&&now-cloud.last<20000)return;cloud.last=now;
+  var t='';try{t=JSON.stringify(profs[k]);}catch(e){return;}
+  if(t.length>3400)return;
+  try{room.cloud({t:'sv',n:state.name,pin:cloud.pin,d:profs[k]},function(m){
+    if(m&&m.r==='ok'){cloud.saved=Date.now();acRefresh();}
+    else if(m&&(m.r==='bad'||m.r==='nouser')){toast('Server hesabı: şifrə uyğun gəlmir, yenidən daxil ol');cloud.pin='';acRefresh();}
+  });}catch(e){}
+}
+function cloudAdopt(d,key){
+  var loc=profs[key];
+  if(d&&typeof d==='object'&&(!loc||(d.ts||0)>(loc.ts||0))){
+    profs[key]=d;
+    if(key===pkey(state.name)){
+      applyProfile(d);state.pick=state.model;
+      Array.prototype.forEach.call($('sw').children,function(c,i){c.setAttribute('aria-pressed',i===state.color?'true':'false');});
+    }
+    return true;
+  }
+  return false;
+}
+function cloudLinked(nm,pin){
+  cloud.pin=pin;cloud.key=pkey(nm);cloud.guest=false;cloud.saved=Date.now();
+  try{pins[cloud.key]=pin;localStorage.setItem('acikyol2_pin',JSON.stringify(pins));localStorage.setItem('acikyol2_user',nm);}catch(e){}
+  acRefresh();
+}
+var AC_ERR={name:'Ad ən azı 3 simvol olmalıdır',short:'Şifrə ən azı 4 simvol olmalıdır',slow:'Çox cəhd oldu. 1 dəqiqə gözlə',exists:'Bu ad tutulub. Başqa ad seç və ya Giriş et',nouser:'Belə hesab yoxdur. Qeydiyyat bölməsinə keç',bad:'Şifrə səhvdir',full:'Serverdə yer qalmayıb',err:'Hesab məlumatı düzgün deyil',off:'Hesab serverinə qoşulmaq olmadı. Bir az sonra yenidən yoxla'};
+function autoLogin(){
+  if(cloud.pin||cloud.guest||cloud.busy||!cloudAvail())return;
+  var nm='';try{nm=localStorage.getItem('acikyol2_user')||'';}catch(e){}
+  var pin=nm&&pins[pkey(nm)];if(!pin)return;
+  cloud.busy=true;
+  room.cloud({t:'ld',n:nm,pin:pin},function(m){
+    cloud.busy=false;
+    if(m&&m.r==='ok'){
+      var ad=cloudAdopt(m.d,pkey(nm));cloudLinked(nm,pin);
+      if(ad){toast('Hesab serverdən yükləndi: '+nm);$('nm').value=state.name;}
+      if(!state.started&&pkey(state.name)!==pkey(nm)){state.name=cleanName(nm);applyProfile(profs[pkey(nm)]);state.pick=state.model;$('nm').value=state.name;}
+    }else if(m&&(m.r==='bad'||m.r==='nouser')){try{delete pins[pkey(nm)];localStorage.setItem('acikyol2_pin',JSON.stringify(pins));}catch(e){}}
+  });
+}
 function save(){
   try{
     var k=pkey(state.name);if(!k)return;
     delete profs[k];
-    profs[k]={n:state.name,c:state.color,m:state.model,p:Math.floor(state.money*100)/100,o:state.owned,md:state.mods,u:Object.keys(state.unl),f:state.fuels,bt:state.best};
+    profs[k]={n:state.name,c:state.color,m:state.model,ts:Date.now(),p:Math.floor(state.money*100)/100,o:state.owned,md:state.mods,u:Object.keys(state.unl),f:state.fuels,bt:state.best};
     var ks=Object.keys(profs);while(ks.length>20){delete profs[ks.shift()];}
     localStorage.setItem('acikyol2',JSON.stringify(profs));localStorage.setItem('acikyol2_last',k);
   }catch(e){}
+  try{cloudSync(false);}catch(e){}
 }
 function mdl(pr){return clamp(Math.floor(num(pr.m,0)),0,CARS.length-1);}
 window.addEventListener('pagehide',save);
@@ -1820,7 +1937,7 @@ function refreshGarage(){
     $('buyBtn').disabled=need>0;
   }
   var go=$('go');go.disabled=!o;
-  go.textContent=!o?'Əvvəl maşını al':(state.started?'Sürməyə qayıt':'Sürməyə başla');
+  go.textContent=!o?'Əvvəl maşını al':(state.started?'Sürməyə qayıt':acGoTxt());
 }
 function buy(i){
   var cd=CARS[i];if(!cd||own(i))return;
@@ -2028,9 +2145,9 @@ function groundY(x,z,cy){
   }
   for(i=0;i<ramps.length;i++){
     var p=ramps[i],dx=x-p.x,dz=z-p.z;
-    if(dx>14||dx<-14||dz>14||dz<-14)continue;
+    var rr=p.r||14;if(dx>rr||dx<-rr||dz>rr||dz<-rr)continue;
     var u=dx*p.sn+dz*p.cs,sd=dx*p.cs-dz*p.sn;
-    if(Math.abs(sd)<=p.w/2&&u>=-p.l/2&&u<=p.l/2){var hy=p.h*(u+p.l/2)/p.l;if(hy>y)y=hy;}
+    if(Math.abs(sd)<=p.w/2&&u>=-p.l/2&&u<=p.l/2){var hy=(p.y0||0)+p.h*(u+p.l/2)/p.l;if(p.hi&&cy!==undefined&&hy>cy+1.5)continue;if(hy>y)y=hy;}
   }
   return y;
 }
@@ -2096,7 +2213,7 @@ function stepCar(dt){
     }
   }
   for(i=0;i<(race.on?0:colliders.length);i++){
-    var b=colliders[i];
+    var b=colliders[i];if(b.lo&&car.y>2.5)continue;
     if(car.x<b.x0-RAD||car.x>b.x1+RAD||car.z<b.z0-RAD||car.z>b.z1+RAD)continue;
     var cx=clamp(car.x,b.x0,b.x1),cz=clamp(car.z,b.z0,b.z1),dx=car.x-cx,dz=car.z-cz,d2=dx*dx+dz*dz;
     if(d2<RAD*RAD){
@@ -2580,6 +2697,8 @@ function applyPresence(rc,pr){
   rc.tx=num(pr.x,rc.tx);rc.tz=num(pr.z,rc.tz);rc.th=num(pr.h,rc.th);rc.ty=clamp(num(pr.y,0),-2,400);rc.tv=clamp(num(pr.v,0),-30,80);
   rc.st=clamp(num(pr.s,0),-1,1);rc.fl=pr.f===1;rc.laps=num(pr.l,0);rc.best=(typeof pr.b==='number'&&pr.b>0)?pr.b:null;rc.racing=pr.r===1;
   var oq=rc.q||0;rc.q=num(pr.q,0);rc.mo=num(pr.mo,0);
+  var oro=rc.ro||0;rc.ro=clamp(Math.floor(num(pr.ro,0)),0,2);
+  if(cr.role===1&&oro===2&&rc.ro===1&&Math.hypot(car.x-rc.x,car.z-rc.z)<40){try{crCatch(rc);}catch(e){}}
   if(rc.q>0&&rc.q<9000&&oq===0&&!circ.on&&rc.name)toast(rc.name+' dairəvi yarışa başladı (Menyu › Dairəvi yarış)');
   var nm=cleanName(pr.n)||'Sürücü';
   if(nm!==rc.name){rc.name=nm;if(rc.label)rc.obj.remove(rc.label);rc.label=makeLabel(nm);rc.obj.add(rc.label);}
@@ -2617,7 +2736,7 @@ function onPeers(ch){
 }
 function lostRoom(){room=null;roomOk=false;remotes.forEach(function(rc){scene.remove(rc.obj);});remotes.clear();setStatus();netNote();}
 function makeNet(){
-  var peers={},hp=[],hc=[],hch=[],ws=null,open=false,tries=0;
+  var peers={},hp=[],hc=[],hch=[],cw={},ws=null,open=false,tries=0;
   function emitPeers(){var arr=[];for(var id in peers)arr.push({peer:id,isMe:false,presence:peers[id]});hp.forEach(function(f){try{f({peers:arr});}catch(e){}});}
   function emitConn(){hc.forEach(function(f){try{f(open);}catch(e){}});}
   function retry(){tries++;setTimeout(connect,Math.min(8000,500*tries));}
@@ -2627,9 +2746,10 @@ function makeNet(){
     ws.onopen=function(){open=true;tries=0;emitConn();};
     ws.onmessage=function(ev){
       var m;try{m=JSON.parse(ev.data);}catch(e){return;}
-      if(m.t==='hello'){if((m.v||0)<3&&!window.__oldSrv){window.__oldSrv=1;setTimeout(function(){toast('Server köhnədir! server.js faylını GitHub-a yüklə (parkur və çat üçün)');},2500);}peers={};(m.peers||[]).forEach(function(p){peers[p.i]=p.d;});emitPeers();}
+      if(m.t==='hello'){if((m.v||0)<5&&!window.__oldSrv){window.__oldSrv=1;setTimeout(function(){toast('Server köhnədir! server.js faylını GitHub-a yüklə (parkur və çat üçün)');},2500);}peers={};(m.peers||[]).forEach(function(p){peers[p.i]=p.d;});emitPeers();}
       else if(m.t==='u'){peers[m.i]=m.d;emitPeers();}
       else if(m.t==='l'){delete peers[m.i];emitPeers();}
+      else if(m.t==='ld'||m.t==='sv'||m.t==='rg'||m.t==='pw'){var cb=cw[m.t];if(cb){cw[m.t]=null;cb(m);}}
       else if(m.t==='c'){hch.forEach(function(f){try{f(m.n,m.x);}catch(e){}});}
     };
     ws.onclose=function(){open=false;peers={};emitPeers();emitConn();retry();};
@@ -2640,18 +2760,24 @@ function makeNet(){
     presence:function(p){if(open){try{ws.send(JSON.stringify(p));}catch(e){}}},
     chat:function(x){if(open){try{ws.send(JSON.stringify({t:'c',x:x}));}catch(e){}}},
     onChat:function(f){hch.push(f);},
+    cloud:function(msg,cb){
+      if(!open){cb({r:'off'});return;}
+      var done=false,t=setTimeout(function(){if(!done){done=true;cw[msg.t]=null;cb({r:'off'});}},5000);
+      cw[msg.t]=function(m){if(done)return;done=true;clearTimeout(t);cb(m);};
+      try{ws.send(JSON.stringify(msg));}catch(e){done=true;clearTimeout(t);cb({r:'off'});}
+    },
     onPeers:function(f){hp.push(f);},
     onConnection:function(f){hc.push(f);f(open);}
   };
 }
-room=makeNet();roomPending=false;
+room=makeNet();roomPending=false;try{var pw=document.getElementById('pinW');if(pw)pw.hidden=false;}catch(e){}
 room.onPeers(onPeers);
 room.onConnection(function(c){roomOk=c;setStatus();});
 setStatus();netNote();
 function sendPresence(){
   if(!room||!state.started)return;
   try{
-    var p=room.presence({n:state.name,k:state.color,m:state.model,p:MOD(state.model).p,w:MOD(state.model).w,s2:MOD(state.model).s,g:MOD(state.model).g,y:Math.round(car.y*10)/10,x:Math.round(car.x*10)/10,z:Math.round(car.z*10)/10,h:Math.round(car.h*100)/100,v:Math.round(car.v*10)/10,s:Math.round(car.steer*10)/10,f:boosting?1:0,l:race.laps,b:race.best===null?null:Math.round(race.best),r:race.on?1:0,q:circQ(),mo:Math.floor(state.money)});
+    var p=room.presence({n:state.name,k:state.color,m:state.model,p:MOD(state.model).p,w:MOD(state.model).w,s2:MOD(state.model).s,g:MOD(state.model).g,y:Math.round(car.y*10)/10,x:Math.round(car.x*10)/10,z:Math.round(car.z*10)/10,h:Math.round(car.h*100)/100,v:Math.round(car.v*10)/10,s:Math.round(car.steer*10)/10,f:boosting?1:0,l:race.laps,b:race.best===null?null:Math.round(race.best),r:race.on?1:0,q:circQ(),mo:Math.floor(state.money),ro:cr.role});
     if(p&&p.catch)p.catch(function(){});
   }catch(e){}
 }
@@ -2758,7 +2884,7 @@ $('menu').addEventListener('click',function(e){if(e.target===$('menu'))closeMenu
 $('raceBtn').addEventListener('click',function(){stopRace();toast('Yarış dayandırıldı');});
 $('status').addEventListener('click',function(){$('players').classList.toggle('open');});
 
-function begin(){
+function begin0(){
   var nm=cleanName($('nm').value)||state.name;
   if(pkey(nm)!==pkey(state.name)){
     if(state.started)save();
@@ -2781,6 +2907,33 @@ function begin(){
   state.garage=false;$('intro').hidden=true;applyView();
   sendPresence();
 }
+function begin(){
+  if(!cloudAvail()||cloud.guest||cloud.busy){begin0();return;}
+  var nm=cleanName($('nm').value)||state.name,pin=String($('pin').value||'').trim(),key=pkey(nm);
+  if(cloud.pin&&key===cloud.key){begin0();return;}
+  if(nm.length<3){toast(AC_ERR.name);return;}
+  if(pin.length<4){toast(cloud.pin?'Başqa hesaba keçmək üçün əvvəl "Hesabdan çıx" bas':AC_ERR.short);return;}
+  var reg=acMode==='reg';
+  if(reg&&pin!==String($('pin2').value||'').trim()){toast('Şifrələr eyni deyil');return;}
+  var msg;
+  if(reg){
+    if(key===pkey(state.name)&&state.started)save();
+    var d=profs[key]||{n:nm,c:state.color,m:0,p:0,o:[0],ts:Date.now()};
+    msg={t:'rg',n:nm,pin:pin,d:d};
+  }else msg={t:'ld',n:nm,pin:pin};
+  cloud.busy=true;$('go').disabled=true;
+  room.cloud(msg,function(m){
+    cloud.busy=false;$('go').disabled=false;
+    var r=m&&m.r;
+    if(r!=='ok'){toast(AC_ERR[r]||AC_ERR.off);return;}
+    if(!reg&&m.d)cloudAdopt(m.d,key);
+    else if(reg)profs[key]=msg.d;
+    cloudLinked(nm,pin);
+    toast(reg?'Hesab yaradıldı: '+nm:'Daxil oldun: '+nm);
+    begin0();
+    cloudSync(true);
+  });
+}
 var splOn=true,splWas=false;
 function showSplash(){
   if(!splOn){
@@ -2801,6 +2954,25 @@ function hideSplash(){
   if(actx&&actx.state==='suspended'){try{actx.resume();}catch(e){}}
 }
 $('spGo').addEventListener('click',hideSplash);
+$('acLogin').addEventListener('click',function(){acMode='login';acRefresh();});
+$('acReg').addEventListener('click',function(){acMode='reg';acRefresh();});
+$('acGuest').addEventListener('click',function(){cloud.guest=!cloud.guest;acRefresh();});
+$('acOut').addEventListener('click',function(){
+  try{delete pins[cloud.key];localStorage.setItem('acikyol2_pin',JSON.stringify(pins));localStorage.removeItem('acikyol2_user');}catch(e){}
+  cloud.pin='';cloud.key='';$('pin').value='';$('pin2').value='';acRefresh();toast('Hesabdan çıxdın');
+});
+$('acPw').addEventListener('click',function(){
+  var np=String($('pin2').value||'').trim();
+  if(!cloud.pin||!cloudAvail())return;
+  if(np.length<4){toast('Yeni şifrə ən azı 4 simvol olmalıdır');return;}
+  room.cloud({t:'pw',n:cloud.key,pin:cloud.pin,np:np},function(m){
+    if(m&&m.r==='ok'){cloud.pin=np;try{pins[cloud.key]=np;localStorage.setItem('acikyol2_pin',JSON.stringify(pins));}catch(e){}$('pin2').value='';toast('Şifrə dəyişdi');}
+    else toast(AC_ERR[m&&m.r]||AC_ERR.off);
+  });
+});
+window.addEventListener('pagehide',function(){cloudSync(true);});
+acRefresh();
+try{if(cloudAvail())room.onConnection(function(c){if(c)setTimeout(autoLogin,300);});}catch(e){}
 
 /* ===================== yeni funksiyalar ===================== */
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
@@ -2953,8 +3125,8 @@ function startMission(){
   if(!state.started)return;
   if(race.on||circ.on){toast('Əvvəl yarışı bitir');return;}
   var p=roadPoint(150,450,car.x,car.z);
-  mis.on=true;mis.stage=0;mis.kind=Math.random()<0.5?0:1;mis.x=p.x;mis.z=p.z;mis.t=0;mis.limit=0;
-  toast(mis.kind?'Çatdırılma: yükü götür (sarı dairə)':'Taksi: müştərini götür (sarı dairə)');
+  mis.on=true;mis.stage=0;var rk=Math.random();mis.kind=rk<0.4?0:rk<0.7?1:2;mis.x=p.x;mis.z=p.z;mis.t=0;mis.limit=0;
+  toast(mis.kind===2?'Turist: gəzinti turu üçün müştərini götür (sarı dairə)':mis.kind?'Çatdırılma: yükü götür (sarı dairə)':'Taksi: müştərini götür (sarı dairə)');
   fmarkSet(mis.x,mis.z,0xffd23f);
 }
 function cancelMission(msg){mis.on=false;fmarkHide();if(msg)toast(msg);}
@@ -2965,9 +3137,11 @@ function stepMission(dt){
   if(mis.stage===1){mis.t+=dt;if(mis.t>=mis.limit){cancelMission('Vaxt bitdi, missiya uğursuz oldu');return;}}
   if(d<12&&sp<8){
     if(mis.stage===0){
-      var p=roadPoint(300,700,mis.x,mis.z);mis.dist=Math.hypot(p.x-mis.x,p.z-mis.z);
-      mis.stage=1;mis.x=p.x;mis.z=p.z;mis.t=0;mis.limit=Math.round(mis.dist/13+25);mis.reward=Math.round(60+mis.dist*0.45);
-      fmarkSet(mis.x,mis.z,0x2ee6a1);toast((mis.kind?'Yük':'Müştəri')+' götürüldü, yaşıl dairəyə apar');
+      var p=roadPoint(300,700,mis.x,mis.z);
+      if(mis.kind===2){var sp0=SPOTS[Math.floor(Math.random()*SPOTS.length)];p={x:sp0.x,z:sp0.z};mis.spot=sp0.n;}
+      mis.dist=Math.hypot(p.x-mis.x,p.z-mis.z);
+      mis.stage=1;mis.x=p.x;mis.z=p.z;mis.t=0;mis.limit=Math.round(mis.kind===2?mis.dist/10+35:mis.dist/13+25);mis.reward=Math.round((60+mis.dist*0.45)*(mis.kind===2?1.5:1));
+      fmarkSet(mis.x,mis.z,0x2ee6a1);toast(mis.kind===2?'Turist götürüldü: '+mis.spot+' (yaşıl dairə)':(mis.kind?'Yük':'Müştəri')+' götürüldü, yaşıl dairəyə apar');
     }else{
       var bonus=mis.t<mis.limit*0.6,r=Math.round(mis.reward*(bonus?1.4:1));
       state.money+=r;save();toast('Missiya tamamlandı! +'+r+' manat'+(bonus?' (sürətli bonus)':''));cancelMission();
@@ -3031,15 +3205,16 @@ function featMarks(){
 }
 var misTxt='';
 function featHud(){
-  var el=$('mis'),on=mis.on||circ.on;
+  var el=$('mis'),crOn=cr.role>0&&!mis.on&&!circ.on,on=mis.on||circ.on||crOn;
   el.hidden=!on;if(!on)return;
+  if(crOn){crHud();return;}
   var tg=mis.on?{x:mis.x,z:mis.z}:circTarget(),dx=tg.x-car.x,dz=tg.z-car.z;
   $('mArr').style.transform='rotate('+(-angDiff(Math.atan2(dx,dz),car.h))+'rad)';
   var dist=Math.hypot(dx,dz),t1,t2,t3='';
   $('mD').textContent=dist>=1000?(dist/1000).toFixed(1)+' km':Math.round(dist)+' m';
   if(mis.on){
-    t1=mis.kind?'ÇATDIRILMA':'TAKSİ';
-    t2=mis.stage?('Təhvil ver · '+mis.reward+' manat'):(mis.kind?'Yükü götür':'Müştərini götür');
+    t1=['TAKSİ','ÇATDIRILMA','TURİST'][mis.kind];
+    t2=mis.stage?((mis.kind===2?mis.spot:'Təhvil ver')+' · '+mis.reward+' manat'):(mis.kind===1?'Yükü götür':mis.kind===2?'Turisti götür':'Müştərini götür');
     if(mis.stage)t3=' · '+Math.max(0,Math.ceil(mis.limit-mis.t))+' san';
   }else{
     var pl=circPlace();t1='DAİRƏVİ YARIŞ';
@@ -3052,13 +3227,89 @@ function featHud(){
 function featStep(dt,now){
   try{chatHook();}catch(e){}
   featWeather(dt);
-  if(live()){stepMission(dt);stepCircuit(dt);npcStep(dt);}
+  if(live()){stepMission(dt);stepCircuit(dt);npcStep(dt);stepCR(dt);}
   else if(circ.cd>0&&false){}
+  crBars();
   featHud();
 }
 function featMenu(){
   $('bMis').textContent=mis.on?'Missiyanı ləğv et':'Missiya (taksi / çatdırılma)';
   $('bCirc').textContent=circ.on?'Yarışı dayandır':'Dairəvi yarış (dostlarla)';
+  $('bCR').textContent='Polis–Qaçaq: '+crTxt[cr.role];
+}
+/* ===================== polis–qaçaq ===================== */
+var crTxt=['söndürülüb','Qaçaq','Polis'],CRH=[1.48,1.2,1.42,1.45];
+function crCounts(){
+  var c=0,r=0;
+  remotes.forEach(function(rc){if(rc.ro===1)c++;else if(rc.ro===2)r++;});
+  if(cr.role===1)c++;else if(cr.role===2)r++;
+  return{c:c,r:r};
+}
+function crSet(v){
+  cr.role=v;cr.near=0;cr.surv=0;cr.had=false;
+  toast(v===1?'Polis oldun! Qaçaqları tut (8 m yaxınlıq)':v===2?'Qaçaq oldun! Polisdən qaç':'Polis–Qaçaq söndürüldü');
+  sendPresence();
+}
+function crCatch(rc){
+  cr.catches++;state.money+=500;save();
+  toast('Qaçağı tutdun: '+(rc.name||'Sürücü')+' · +500 manat');
+}
+function crNearest(role){
+  var b=null,bd=1e9;
+  remotes.forEach(function(rc){if(rc.ro===role){var d=Math.hypot(rc.x-car.x,rc.z-car.z);if(d<bd){bd=d;b=rc;}}});
+  return b?{rc:b,d:bd}:null;
+}
+function stepCR(dt){
+  if(!cr.role)return;
+  var n=crCounts();
+  if(n.r>0)cr.had=true;
+  if(cr.role===2){
+    var cp=crNearest(1);
+    if(cp&&cp.d<8)cr.near+=dt;else cr.near=Math.max(0,cr.near-dt*0.7);
+    if(cr.near>1.5){
+      cr.role=1;cr.near=0;cr.surv=0;
+      var lost=Math.min(state.money,100);state.money-=lost;save();
+      toast('Tutuldun! İndi polissən'+(lost>0?' (−'+Math.floor(lost)+' manat)':''));
+      sendPresence();
+    }else if(cp){
+      cr.surv+=dt;
+      if(cr.surv>=10){cr.surv-=10;state.money+=80;toast('Qaçaq sağ qaldı +80 manat');}
+    }
+  }else if(cr.role===1){
+    if(cr.had&&n.r===0){cr.had=false;toast('Raund bitdi, bütün qaçaqlar tutuldu. Yeni raund üçün Menyu › Polis–Qaçaq');}
+  }
+}
+function crBars(){
+  var list=[[car.obj,cr.role===1,state.model]];
+  remotes.forEach(function(rc){list.push([rc.obj,rc.ro===1,rc.m]);});
+  var on=(Date.now()%400)<200;
+  for(var i=0;i<list.length;i++){
+    var o=list[i][0];if(!o||!o.userData)continue;
+    var bar=o.userData.bar;
+    if(list[i][1]){
+      if(!bar||bar.parent!==o){
+        bar=new THREE.Group();var h=CRH[list[i][2]]||1.45;
+        var a=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.14,0.3),new THREE.MeshBasicMaterial({color:0xff2020}));
+        var b=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.14,0.3),new THREE.MeshBasicMaterial({color:0x2a6bff}));
+        a.position.set(-0.3,h,0);b.position.set(0.3,h,0);bar.add(a);bar.add(b);bar.userData={a:a,b:b};
+        o.add(bar);o.userData.bar=bar;
+      }
+      bar.userData.a.visible=on;bar.userData.b.visible=!on;
+    }else if(bar){o.remove(bar);o.userData.bar=null;}
+  }
+}
+var crLast='';
+function crHud(){
+  var n=crCounts(),tg=crNearest(cr.role===1?2:1),t1=cr.role===1?'POLİS':'QAÇAQ',t2,t3='';
+  if(tg){
+    var dx=tg.rc.x-car.x,dz=tg.rc.z-car.z;
+    $('mArr').style.transform='rotate('+(-angDiff(Math.atan2(dx,dz),car.h))+'rad)';
+    $('mD').textContent=tg.d>=1000?(tg.d/1000).toFixed(1)+' km':Math.round(tg.d)+' m';
+  }else $('mD').textContent='—';
+  t2=cr.role===1?('Qaçaq: '+n.r+' · Tutdun: '+cr.catches):('Polis: '+n.c+' · Qaçaq: '+n.r);
+  if(cr.role===2&&cr.near>0.2)t3=' · TUTULURSAN!';
+  var k=t1+'|'+t2+'|'+t3;
+  if(k!==crLast){crLast=k;misTxt='';$('mT').textContent=t1;$('mS').textContent=t2;$('mX').textContent=t3;}
 }
 /* ---- təlimat ---- */
 var tutOn=false,tutWas=false;
@@ -3082,6 +3333,11 @@ $('tutGo').addEventListener('click',hideTut);
 $('bTut').addEventListener('click',function(){closeMenu();showTut();});
 $('bMis').addEventListener('click',function(){closeMenu();if(mis.on)cancelMission('Missiya ləğv edildi');else startMission();});
 $('bCirc').addEventListener('click',function(){closeMenu();if(circ.on)stopCircuit('Yarış dayandırıldı');else startCircuit();});
+$('bCR').addEventListener('click',function(){
+  if(!room||!roomOk){toast('Polis–Qaçaq yalnız onlayn rejimdə işləyir');return;}
+  if(mis.on||circ.on){toast('Əvvəl missiya/yarışı dayandır');return;}
+  crSet((cr.role+1)%3);featMenu();
+});
 $('bRadio').addEventListener('click',radioNext);
 $('bRain').addEventListener('click',toggleRain);
 
@@ -3369,7 +3625,7 @@ function drawMini(now){
   if(race.on){var tg=raceTarget(),pulse=1+0.25*Math.sin(now/180);
   mg.fillStyle='#2ee6c5';mg.beginPath();mg.arc(tg.x,tg.z,9/k*pulse,0,Math.PI*2);mg.fill();}
   featMarks().forEach(function(m){mg.fillStyle=m.c;mg.strokeStyle='#000';mg.lineWidth=1.5/k;mg.beginPath();mg.arc(m.x,m.z,8/k,0,Math.PI*2);mg.fill();mg.stroke();});
-  remotes.forEach(function(rc){mg.fillStyle=PALETTE[rc.k];mg.strokeStyle='#000';mg.lineWidth=1.5/k;mg.beginPath();mg.arc(rc.x,rc.z,5/k,0,Math.PI*2);mg.fill();mg.stroke();});
+  remotes.forEach(function(rc){mg.fillStyle=PALETTE[rc.k];mg.strokeStyle=rc.ro===1?'#3d8bff':'#000';mg.lineWidth=(rc.ro===1?3:1.5)/k;mg.beginPath();mg.arc(rc.x,rc.z,5/k,0,Math.PI*2);mg.fill();mg.stroke();});
   mg.restore();
   mg.save();mg.translate(S/2,S*0.62);mg.fillStyle='#fff';mg.strokeStyle='#000';mg.lineWidth=2;
   mg.beginPath();mg.moveTo(0,-14);mg.lineTo(9,10);mg.lineTo(0,5);mg.lineTo(-9,10);mg.closePath();mg.fill();mg.stroke();mg.restore();
@@ -3414,7 +3670,7 @@ function drawBigMap(now){
   c.fillStyle='#f29a1f';TUNES.forEach(function(t){c.fillRect(t.x-7*u,t.z-7*u,14*u,14*u);c.strokeRect(t.x-7*u,t.z-7*u,14*u,14*u);});
   if(race.on){var tg=raceTarget(),pl=1+0.2*Math.sin(now/180);c.fillStyle='#2ee6c5';c.strokeStyle='#000';c.beginPath();c.arc(tg.x,tg.z,9*u*pl,0,Math.PI*2);c.fill();c.stroke();}
   for(i=0;i<ais.length;i++){var a=ais[i];if(a.kind==='p'){c.fillStyle=(Math.floor(now/200)%2)?'#ff2a2a':'#2a6bff';c.strokeStyle='#fff';c.beginPath();c.arc(a.x,a.z,6*u,0,Math.PI*2);c.fill();c.stroke();}}
-  remotes.forEach(function(rc){c.fillStyle=PALETTE[rc.k];c.strokeStyle='#000';c.lineWidth=1.5*u;c.beginPath();c.arc(rc.x,rc.z,6*u,0,Math.PI*2);c.fill();c.stroke();});
+  remotes.forEach(function(rc){c.fillStyle=PALETTE[rc.k];c.strokeStyle=rc.ro===1?'#3d8bff':'#000';c.lineWidth=(rc.ro===1?3:1.5)*u;c.beginPath();c.arc(rc.x,rc.z,6*u,0,Math.PI*2);c.fill();c.stroke();});
   c.save();c.translate(car.x,car.z);c.rotate(Math.PI-car.h);c.scale(u,u);
   c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=2;c.beginPath();c.moveTo(0,-15);c.lineTo(10,11);c.lineTo(0,6);c.lineTo(-10,11);c.closePath();c.fill();c.stroke();c.restore();
   /* yazılar (ekran koordinatı) */
@@ -3466,14 +3722,14 @@ function drawBigMap(now){
 })();
 var plistT=0;
 function updateList(){
-  var rows=[{n:state.name,k:state.color,m:Math.floor(state.money),me:true}];
-  remotes.forEach(function(rc){rows.push({n:rc.name||'Sürücü',k:rc.k,m:rc.mo||0,me:false,q:rc.q});});
+  var rows=[{n:state.name,k:state.color,m:Math.floor(state.money),me:true,ro:cr.role}];
+  remotes.forEach(function(rc){rows.push({n:rc.name||'Sürücü',k:rc.k,m:rc.mo||0,me:false,q:rc.q,ro:rc.ro});});
   rows.sort(function(a,b){return b.m-a.m||(a.n<b.n?-1:1);});
   var ul=$('plist');ul.textContent='';
   rows.slice(0,6).forEach(function(r,i){
     var li=document.createElement('li');if(r.me)li.className='me';
     var sw=document.createElement('b');sw.style.background=PALETTE[r.k];
-    var sp=document.createElement('span');sp.textContent=(i+1)+'. '+r.n+(r.me?' (sən)':'');
+    var sp=document.createElement('span');sp.textContent=(i+1)+'. '+(r.ro===1?'[P] ':r.ro===2?'[Q] ':'')+r.n+(r.me?' (sən)':'');
     var em=document.createElement('em');em.textContent=(r.q>0&&r.q<9000?'🏁 ':'')+(r.m>0||r.me?fmtM(r.m):'—');
     li.appendChild(sw);li.appendChild(sp);li.appendChild(em);ul.appendChild(li);
   });

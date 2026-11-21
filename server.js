@@ -15,6 +15,58 @@ const MAX_PLAYERS = 24;
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const page = fs.readFileSync(path.join(__dirname, 'index.html'));
 
+const DATA_FILE = path.join(process.env.DATA_DIR || __dirname, 'hesablar.json');
+let accounts = {};
+try { accounts = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) || {}; } catch (e) { accounts = {}; }
+let saveTimer = null;
+function persist() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    try { fs.writeFileSync(DATA_FILE + '.tmp', JSON.stringify(accounts)); fs.renameSync(DATA_FILE + '.tmp', DATA_FILE); } catch (e) { /* disk yoxdur */ }
+  }, 2000);
+}
+function akey(n) { return String(n || '').replace(/[^\p{L}\p{N} ._-]/gu, '').trim().slice(0, 14).toLowerCase(); }
+function hashPin(pin, salt) { return crypto.scryptSync(String(pin), salt, 32).toString('hex'); }
+function cleanProfile(d) {
+  if (!d || typeof d !== 'object') return null;
+  let t; try { t = JSON.stringify(d); } catch (e) { return null; }
+  if (t.length > 3500) return null;
+  return JSON.parse(t);
+}
+function account(c, m) {
+  const k = akey(m.n), pin = typeof m.pin === 'string' ? m.pin.slice(0, 40) : '';
+  const rep = (r, extra) => send(c, Object.assign({ t: m.t, r: r }, extra || {}));
+  if (!k || k.length < 3) { rep('name'); return; }
+  if (pin.length < 4) { rep('short'); return; }
+  const now = Date.now();
+  if (now - (c.accT || 0) > 60000) { c.accT = now; c.accN = 0; }
+  if (++c.accN > 12) { rep('slow'); return; }
+  let a = accounts[k];
+  if (m.t === 'rg') {
+    if (a) { rep('exists'); return; }
+    if (Object.keys(accounts).length >= 3000) { rep('full'); return; }
+    const d = cleanProfile(m.d);
+    if (!d) { rep('err'); return; }
+    const salt = crypto.randomBytes(8).toString('hex');
+    a = accounts[k] = { s: salt, h: hashPin(pin, salt), d: d, t: Date.now() };
+    persist(); rep('ok', { ts: a.t }); return;
+  }
+  if (!a) { rep('nouser'); return; }
+  if (hashPin(pin, a.s) !== a.h) { rep('bad'); return; }
+  if (m.t === 'ld') { rep('ok', { d: a.d, ts: a.t }); return; }
+  if (m.t === 'pw') {
+    const np = typeof m.np === 'string' ? m.np.slice(0, 40) : '';
+    if (np.length < 4) { rep('short'); return; }
+    a.s = crypto.randomBytes(8).toString('hex'); a.h = hashPin(np, a.s);
+    persist(); rep('ok'); return;
+  }
+  const d = cleanProfile(m.d);
+  if (!d) { rep('err'); return; }
+  a.d = d; a.t = Date.now();
+  persist(); rep('ok', { ts: a.t });
+}
+
 const clients = new Map();
 let nextId = 1;
 
@@ -73,7 +125,8 @@ function clean(m) {
     b: (typeof m.b === 'number' && m.b > 0 && m.b < 3.6e6) ? Math.round(m.b) : null,
     r: m.r === 1 ? 1 : 0,
     q: Math.round(num(m.q, 0, 9999, 0)),
-    mo: Math.round(num(m.mo, 0, 1e9, 0))
+    mo: Math.round(num(m.mo, 0, 1e9, 0)),
+    ro: Math.round(num(m.ro, 0, 2, 0))
   };
 }
 
@@ -99,6 +152,12 @@ function handle(c, text) {
     broadcast({ t: 'c', i: c.id, n: c.state.n, x: msg }, c);
     return;
   }
+  if (text.length < 4000 && text.charAt(0) === '{' && /"t":"(ld|sv|rg|pw)"/.test(text)) {
+    let am;
+    try { am = JSON.parse(text); } catch (e) { return; }
+    if (am && (am.t === 'ld' || am.t === 'sv' || am.t === 'rg' || am.t === 'pw')) account(c, am);
+    return;
+  }
   if (now - c.last < 30) return;
   c.last = now;
   let m;
@@ -119,10 +178,10 @@ function parse(c) {
     } else if (len === 127) {
       if (c.buf.length < 10) return;
       const big = c.buf.readBigUInt64BE(2);
-      if (big > 8192n) { close(c); return; }
+      if (big > 12000n) { close(c); return; }
       len = Number(big); off = 10;
     }
-    if (!masked || len > 4096) { close(c); return; }
+    if (!masked || len > 12000) { close(c); return; }
     if (c.buf.length < off + 4 + len) return;
     const mask = c.buf.subarray(off, off + 4);
     const data = Buffer.from(c.buf.subarray(off + 4, off + 4 + len));
@@ -157,11 +216,11 @@ server.on('upgrade', (req, socket) => {
 
   const others = [];
   for (const o of clients.values()) if (o !== c && o.state) others.push({ i: o.id, d: o.state });
-  send(c, { t: 'hello', i: id, v: 3, peers: others });
+  send(c, { t: 'hello', i: id, v: 5, peers: others });
 
   socket.on('data', (chunk) => {
     c.buf = Buffer.concat([c.buf, chunk]);
-    if (c.buf.length > 16384) { close(c); return; }
+    if (c.buf.length > 40000) { close(c); return; }
     parse(c);
   });
   socket.on('close', () => close(c));
