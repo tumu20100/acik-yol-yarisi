@@ -303,6 +303,15 @@ body.compact #tDone{margin-top:9px}
 #tut h1{margin:0 0 8px;font:800 22px var(--f-disp)}
 #tut ul{margin:0 0 14px;padding-left:18px;display:grid;gap:6px;font-size:14px;line-height:1.35;color:#d7e0e5}
 #tut li b{color:var(--signal)}
+#chatFeed{left:var(--gl);top:calc(var(--gt) + 150px);width:min(250px,56vw);display:grid;gap:3px;pointer-events:none}
+#chatFeed div{font-size:12px;line-height:1.25;padding:3px 8px;border-radius:8px;background:rgba(8,12,15,.6);color:#eaf0f3;text-shadow:0 1px 2px #000;word-break:break-word;animation:chIn .2s ease-out}
+#chatFeed div b{color:var(--signal);margin-right:4px}
+#chatFeed div.me b{color:#2ee6a1}
+@keyframes chIn{from{opacity:0;transform:translateY(6px)}}
+#chatBar{position:fixed;z-index:40;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 8px);width:min(520px,calc(100vw - 24px));display:flex;gap:6px;padding:8px;background:rgba(10,16,20,.94);border:1px solid var(--line);border-radius:12px;touch-action:manipulation}
+#chatBar[hidden]{display:none}
+#chatIn{flex:1;min-width:0;background:#0b1217;color:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:15px var(--f-body,system-ui)}
+#chatBar .mb{padding:8px 12px;white-space:nowrap}
 /* manual UI scale (Menyu > Interfeys ölçüsü) */
 .hud,.pad,#tools,#intro .card,#menu .card,#tune .card{zoom:var(--ui,1)}
 </style>
@@ -325,6 +334,7 @@ body.compact #tDone{margin-top:9px}
 <canvas id="mini" class="hud" width="264" height="264"></canvas>
 <div id="tools" class="hud">
   <button id="bMenu" class="tb" type="button">Menyu</button>
+  <button id="bChat" class="tb" type="button">Çat</button>
 </div>
 
 <div id="menu" hidden>
@@ -374,6 +384,8 @@ body.compact #tDone{margin-top:9px}
   <div id="fuelRow"><small>BENZİN</small> <b id="fv">100</b> L <span id="fArr">▲</span> <span id="fnear"></span><div class="fbar"><i id="fb"></i></div></div></div>
 <div id="help" class="hud panel"><kbd>W A S D</kbd> sür · <kbd>Boşluq</kbd> əl əyləci<br><kbd>Shift</kbd> nitro · <kbd>E</kbd> yarışı dayandır<br><kbd>R</kbd> bərpa · <kbd>C</kbd> kamera · <kbd>N</kbd> gecə · <kbd>G</kbd> qaraj · <kbd>T</kbd> modifiye (məntəqədə) · <kbd>X</kbd> xəritə (və ya mini xəritəyə toxun) · <kbd>F</kbd> benzin · <kbd>M</kbd> səs · <kbd>Esc</kbd> menyu</div>
 <div id="toast" role="status"></div>
+<div id="chatFeed" class="hud" aria-live="polite"></div>
+<form id="chatBar" hidden autocomplete="off"><input id="chatIn" type="text" maxlength="80" placeholder="Mesaj yaz…" enterkeyhint="send"><button class="mb primary" type="submit">Göndər</button><button id="chatX" class="mb" type="button" aria-label="Bağla">✕</button></form>
 <div id="mis" class="hud panel" hidden><b id="mT">MİSSİYA</b><div class="ms" id="mS">—</div><div class="mr"><svg id="mArr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 L20 20 L12 15.5 L4 20 Z" fill="#ffd23f"/></svg><span id="mD">—</span><span id="mX"></span></div></div>
 <div id="tut" hidden><div class="card"><h1>Necə oynanır</h1><ul>
 <li><b>Sür:</b> W A S D və ya ekrandakı düymələr. Boşluq əl əyləcidir, Shift nitrodur.</li>
@@ -2605,7 +2617,7 @@ function onPeers(ch){
 }
 function lostRoom(){room=null;roomOk=false;remotes.forEach(function(rc){scene.remove(rc.obj);});remotes.clear();setStatus();netNote();}
 function makeNet(){
-  var peers={},hp=[],hc=[],ws=null,open=false,tries=0;
+  var peers={},hp=[],hc=[],hch=[],ws=null,open=false,tries=0;
   function emitPeers(){var arr=[];for(var id in peers)arr.push({peer:id,isMe:false,presence:peers[id]});hp.forEach(function(f){try{f({peers:arr});}catch(e){}});}
   function emitConn(){hc.forEach(function(f){try{f(open);}catch(e){}});}
   function retry(){tries++;setTimeout(connect,Math.min(8000,500*tries));}
@@ -2615,9 +2627,10 @@ function makeNet(){
     ws.onopen=function(){open=true;tries=0;emitConn();};
     ws.onmessage=function(ev){
       var m;try{m=JSON.parse(ev.data);}catch(e){return;}
-      if(m.t==='hello'){peers={};(m.peers||[]).forEach(function(p){peers[p.i]=p.d;});emitPeers();}
+      if(m.t==='hello'){if((m.v||0)<3&&!window.__oldSrv){window.__oldSrv=1;setTimeout(function(){toast('Server köhnədir! server.js faylını GitHub-a yüklə (parkur və çat üçün)');},2500);}peers={};(m.peers||[]).forEach(function(p){peers[p.i]=p.d;});emitPeers();}
       else if(m.t==='u'){peers[m.i]=m.d;emitPeers();}
       else if(m.t==='l'){delete peers[m.i];emitPeers();}
+      else if(m.t==='c'){hch.forEach(function(f){try{f(m.n,m.x);}catch(e){}});}
     };
     ws.onclose=function(){open=false;peers={};emitPeers();emitConn();retry();};
     ws.onerror=function(){};
@@ -2625,6 +2638,8 @@ function makeNet(){
   connect();
   return{
     presence:function(p){if(open){try{ws.send(JSON.stringify(p));}catch(e){}}},
+    chat:function(x){if(open){try{ws.send(JSON.stringify({t:'c',x:x}));}catch(e){}}},
+    onChat:function(f){hch.push(f);},
     onPeers:function(f){hp.push(f);},
     onConnection:function(f){hc.push(f);f(open);}
   };
@@ -2697,6 +2712,7 @@ window.addEventListener('keydown',function(e){
   else if(e.code==='KeyM'){toggleSound();}
   else if(e.code==='KeyN'){toggleNight();}
   else if(e.code==='KeyB'){radioNext();}
+  else if(e.code==='Enter'){e.preventDefault();openChat();}
   else if(e.code==='KeyG'){openGarage();}
   else if(e.code==='KeyT'){if(canTune())openTune();else toast('Modifiye üçün narıncı məntəqəyə get');}
   else if(e.code==='KeyX'){openMap();}
@@ -3034,6 +3050,7 @@ function featHud(){
   if(k!==misTxt){misTxt=k;$('mT').textContent=t1;$('mS').textContent=t2;$('mX').textContent=t3;}
 }
 function featStep(dt,now){
+  try{chatHook();}catch(e){}
   featWeather(dt);
   if(live()){stepMission(dt);stepCircuit(dt);npcStep(dt);}
   else if(circ.cd>0&&false){}
@@ -3067,6 +3084,59 @@ $('bMis').addEventListener('click',function(){closeMenu();if(mis.on)cancelMissio
 $('bCirc').addEventListener('click',function(){closeMenu();if(circ.on)stopCircuit('Yarış dayandırıldı');else startCircuit();});
 $('bRadio').addEventListener('click',radioNext);
 $('bRain').addEventListener('click',toggleRain);
+
+
+/* ===================== onlayn çat ===================== */
+var chatLast=0,chatMsgs=[];
+function chatAdd(name,text,me){
+  var feed=$('chatFeed');if(!feed)return;
+  var d=document.createElement('div');if(me)d.className='me';
+  var b=document.createElement('b');b.textContent=name+':';d.appendChild(b);d.appendChild(document.createTextNode(text));
+  feed.appendChild(d);chatMsgs.push(d);
+  while(chatMsgs.length>4){var o=chatMsgs.shift();if(o.parentNode)o.parentNode.removeChild(o);}
+  setTimeout(function(){var i=chatMsgs.indexOf(d);if(i>=0)chatMsgs.splice(i,1);if(d.parentNode)d.parentNode.removeChild(d);},12000);
+}
+function chatRecv(name,text){
+  if(typeof text!=='string')return;
+  text=text.replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,80);if(!text)return;
+  chatAdd(String(name||'Sürücü').slice(0,14),text,false);
+}
+function chatSend(text){
+  text=String(text||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,80);
+  if(!text)return false;
+  var now=Date.now();if(now-chatLast<800){toast('Çox tez yazırsan');return false;}
+  if(!room||!roomOk){toast('Çat yalnız onlayn rejimdə işləyir');return false;}
+  chatLast=now;
+  try{
+    if(typeof room.chat==='function')room.chat(text);
+    else if(typeof room.emit==='function')room.emit('chat',{n:state.name,x:text});
+  }catch(e){}
+  chatAdd(state.name,text,true);
+  return true;
+}
+var chatOpen=false;
+function openChat(){
+  if(!state.started||splOn||tutOn||state.garage||state.menu||chatOpen)return;
+  chatOpen=true;for(var k in keys)keys[k]=false;
+  $('chatBar').hidden=false;var i=$('chatIn');i.value='';setTimeout(function(){try{i.focus();}catch(e){}},30);
+}
+function closeChat(){
+  if(!chatOpen)return;
+  chatOpen=false;$('chatBar').hidden=true;try{$('chatIn').blur();}catch(e){}
+}
+$('chatBar').addEventListener('submit',function(e){e.preventDefault();var v=$('chatIn').value;if(chatSend(v)||!String(v).trim())closeChat();});
+$('chatX').addEventListener('click',closeChat);
+$('chatIn').addEventListener('keydown',function(e){if(e.code==='Escape'){e.stopPropagation();closeChat();}});
+$('bChat').addEventListener('click',function(){if(chatOpen)closeChat();else openChat();});
+var chatHooked=null;
+function chatHook(){
+  if(!room||chatHooked===room)return;
+  chatHooked=room;
+  try{
+    if(typeof room.onChat==='function')room.onChat(function(n,x){chatRecv(n,x);});
+    else if(typeof room.on==='function')room.on('chat',function(d){if(d)chatRecv(d.n,d.x);});
+  }catch(e){}
+}
 
 /* ===================== NPC-lər ===================== */
 var PED_N=QUAL==='low'?10:QUAL==='medium'?14:20;

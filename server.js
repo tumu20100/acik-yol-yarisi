@@ -88,6 +88,17 @@ function close(c) {
 function handle(c, text) {
   c.alive = true;
   const now = Date.now();
+  if (text.length < 400 && text.charAt(0) === '{' && text.indexOf('"t":"c"') !== -1) {
+    let cm;
+    try { cm = JSON.parse(text); } catch (e) { return; }
+    if (!cm || cm.t !== 'c' || typeof cm.x !== 'string') return;
+    if (now - (c.lastChat || 0) < 700) return;
+    c.lastChat = now;
+    const msg = cm.x.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 80);
+    if (!msg || !c.state || !c.state.n) return;
+    broadcast({ t: 'c', i: c.id, n: c.state.n, x: msg }, c);
+    return;
+  }
   if (now - c.last < 30) return;
   c.last = now;
   let m;
@@ -146,7 +157,7 @@ server.on('upgrade', (req, socket) => {
 
   const others = [];
   for (const o of clients.values()) if (o !== c && o.state) others.push({ i: o.id, d: o.state });
-  send(c, { t: 'hello', i: id, peers: others });
+  send(c, { t: 'hello', i: id, v: 3, peers: others });
 
   socket.on('data', (chunk) => {
     c.buf = Buffer.concat([c.buf, chunk]);
