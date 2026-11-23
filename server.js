@@ -14,6 +14,11 @@ const PORT = process.env.PORT || 3000;
 const MAX_PLAYERS = 24;
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const page = fs.readFileSync(path.join(__dirname, 'index.html'));
+const STATIC = {};
+[['/manifest.json', 'manifest.json', 'application/manifest+json; charset=utf-8'], ['/sw.js', 'sw.js', 'application/javascript; charset=utf-8'],
+ ['/icon-192.png', 'icon-192.png', 'image/png'], ['/icon-512.png', 'icon-512.png', 'image/png'], ['/icon-maskable.png', 'icon-maskable.png', 'image/png']].forEach(function (f) {
+  try { STATIC[f[0]] = { type: f[2], data: fs.readFileSync(path.join(__dirname, f[1])) }; } catch (e) { /* fayl yoxdur */ }
+});
 
 const DATA_FILE = path.join(process.env.DATA_DIR || __dirname, 'hesablar.json');
 let accounts = {};
@@ -34,7 +39,55 @@ function cleanProfile(d) {
   if (t.length > 3500) return null;
   return JSON.parse(t);
 }
-function account(c, m) {
+/* ---- davamlı baza (Upstash Redis REST). Qurulmayıbsa fayl istifadə olunur (Render-də müvəqqəti!) ---- */
+const DB_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.DB_URL || '';
+const DB_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.DB_TOKEN || '';
+const hasDb = !!(DB_URL && DB_TOKEN);
+async function dbCmd(cmd) {
+  const r = await fetch(DB_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + DB_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd), signal: AbortSignal.timeout(7000) });
+  if (!r.ok) throw new Error('db ' + r.status);
+  const j = await r.json();
+  if (j.error) throw new Error(String(j.error));
+  return j.result;
+}
+async function getAcc(k) {
+  if (accounts[k]) return accounts[k];
+  if (!hasDb) return null;
+  const v = await dbCmd(['GET', 'ay:' + k]);
+  if (!v) return null;
+  try { accounts[k] = JSON.parse(v); return accounts[k]; } catch (e) { return null; }
+}
+const dirty = new Set();
+let pushing = false;
+async function dbPush() {
+  if (pushing || !hasDb) return;
+  pushing = true;
+  let fails = 0;
+  try {
+    while (dirty.size && fails < 8) {
+      const key = dirty.values().next().value;
+      const a = accounts[key];
+      if (!a) { dirty.delete(key); continue; }
+      const t0 = a.t;
+      try {
+        await dbCmd(['SET', 'ay:' + key, JSON.stringify(a)]);
+        if (a.t === t0) dirty.delete(key);
+        fails = 0;
+      } catch (e) {
+        fails++;
+        await new Promise(function (r) { setTimeout(r, Math.min(20000, 1500 * fails)); });
+      }
+    }
+  } finally {
+    pushing = false;
+    if (dirty.size) setTimeout(dbPush, 30000);
+  }
+}
+function putAcc(k, a) { accounts[k] = a; persist(); if (hasDb) { dirty.add(k); dbPush(); } }
+if (hasDb) { Object.keys(accounts).forEach(function (k) { dirty.add(k); }); dbPush(); }
+console.log(hasDb ? 'Hesab bazası: Upstash (davamlı)' : 'DİQQƏT: davamlı baza qurulmayıb, hesablar müvəqqəti fayldadır');
+
+async function account(c, m) {
   const k = akey(m.n), pin = typeof m.pin === 'string' ? m.pin.slice(0, 40) : '';
   const rep = (r, extra) => send(c, Object.assign({ t: m.t, r: r }, extra || {}));
   if (!k || k.length < 3) { rep('name'); return; }
@@ -42,15 +95,16 @@ function account(c, m) {
   const now = Date.now();
   if (now - (c.accT || 0) > 60000) { c.accT = now; c.accN = 0; }
   if (++c.accN > 12) { rep('slow'); return; }
-  let a = accounts[k];
+  let a;
+  try { a = await getAcc(k); } catch (e) { rep('dberr'); return; }
   if (m.t === 'rg') {
     if (a) { rep('exists'); return; }
-    if (Object.keys(accounts).length >= 3000) { rep('full'); return; }
+    if (!hasDb && Object.keys(accounts).length >= 3000) { rep('full'); return; }
     const d = cleanProfile(m.d);
     if (!d) { rep('err'); return; }
     const salt = crypto.randomBytes(8).toString('hex');
-    a = accounts[k] = { s: salt, h: hashPin(pin, salt), d: d, t: Date.now() };
-    persist(); rep('ok', { ts: a.t }); return;
+    a = { s: salt, h: hashPin(pin, salt), d: d, t: Date.now() };
+    putAcc(k, a); rep('ok', { ts: a.t }); return;
   }
   if (!a) { rep('nouser'); return; }
   if (hashPin(pin, a.s) !== a.h) { rep('bad'); return; }
@@ -58,13 +112,13 @@ function account(c, m) {
   if (m.t === 'pw') {
     const np = typeof m.np === 'string' ? m.np.slice(0, 40) : '';
     if (np.length < 4) { rep('short'); return; }
-    a.s = crypto.randomBytes(8).toString('hex'); a.h = hashPin(np, a.s);
-    persist(); rep('ok'); return;
+    a.s = crypto.randomBytes(8).toString('hex'); a.h = hashPin(np, a.s); a.t = Date.now();
+    putAcc(k, a); rep('ok'); return;
   }
   const d = cleanProfile(m.d);
   if (!d) { rep('err'); return; }
   a.d = d; a.t = Date.now();
-  persist(); rep('ok', { ts: a.t });
+  putAcc(k, a); rep('ok', { ts: a.t });
 }
 
 const clients = new Map();
@@ -72,7 +126,9 @@ let nextId = 1;
 
 const server = http.createServer((req, res) => {
   const p = req.url.split('?')[0];
-  if (p === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end('ok'); return; }
+  if (p === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end(hasDb ? 'ok db' : 'ok nodb'); return; }
+  const st = STATIC[p];
+  if (st) { res.writeHead(200, { 'Content-Type': st.type, 'Cache-Control': p === '/sw.js' ? 'no-cache' : 'public, max-age=3600' }); res.end(st.data); return; }
   if (p !== '/' && p !== '/index.html') { res.writeHead(404, { 'Content-Type': 'text/plain' }); res.end('Tapılmadı'); return; }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
   res.end(page);
@@ -217,7 +273,7 @@ server.on('upgrade', (req, socket) => {
 
   const others = [];
   for (const o of clients.values()) if (o !== c && o.state) others.push({ i: o.id, d: o.state });
-  send(c, { t: 'hello', i: id, v: 5, peers: others });
+  send(c, { t: 'hello', i: id, v: 5, db: hasDb ? 1 : 0, peers: others });
 
   socket.on('data', (chunk) => {
     c.buf = Buffer.concat([c.buf, chunk]);
