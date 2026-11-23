@@ -40,15 +40,40 @@ function cleanProfile(d) {
   return JSON.parse(t);
 }
 /* ---- davamlı baza (Upstash Redis REST). Qurulmayıbsa fayl istifadə olunur (Render-də müvəqqəti!) ---- */
-const DB_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.DB_URL || '';
-const DB_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.DB_TOKEN || '';
+function cleanEnv(v) { return String(v || '').trim().replace(/^["']+|["']+$/g, '').trim(); }
+let DB_URL = cleanEnv(process.env.UPSTASH_REDIS_REST_URL || process.env.DB_URL);
+let DB_TOKEN = cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN || process.env.DB_TOKEN);
+(function fixDb() {
+  if (!DB_URL) return;
+  const m = DB_URL.match(/^rediss?:\/\/(?:[^:@\/]*:([^@\/]*)@)?([^:\/]+)/i);
+  if (m) { if (!DB_TOKEN && m[1]) DB_TOKEN = m[1]; DB_URL = 'https://' + m[2]; }
+  if (!/^https?:\/\//i.test(DB_URL)) DB_URL = 'https://' + DB_URL;
+  DB_URL = DB_URL.replace(/\/+$/, '');
+})();
+let lastDbErr = '';
 const hasDb = !!(DB_URL && DB_TOKEN);
 async function dbCmd(cmd) {
   const r = await fetch(DB_URL, { method: 'POST', headers: { Authorization: 'Bearer ' + DB_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify(cmd), signal: AbortSignal.timeout(7000) });
-  if (!r.ok) throw new Error('db ' + r.status);
-  const j = await r.json();
-  if (j.error) throw new Error(String(j.error));
-  return j.result;
+  let j = null;
+  try { j = await r.json(); } catch (e) { j = null; }
+  if (!r.ok) { lastDbErr = 'HTTP ' + r.status + (j && j.error ? ' ' + String(j.error).slice(0, 120) : ''); throw new Error(lastDbErr); }
+  if (j && j.error) { lastDbErr = String(j.error).slice(0, 160); throw new Error(lastDbErr); }
+  lastDbErr = '';
+  return j ? j.result : null;
+}
+async function dbCheck() {
+  if (!hasDb) return 'Baza qurulmayıb: UPSTASH_REDIS_REST_URL və UPSTASH_REDIS_REST_TOKEN dəyişənləri tapılmadı';
+  let host = '';
+  try { host = new URL(DB_URL).host; } catch (e) { return 'XƏTA: ünvan (URL) düzgün deyil. Dəyər https:// ilə başlamalıdır'; }
+  try { await dbCmd(['GET', 'ay:__check']); return 'ok: baza işləyir (' + host + ')'; }
+  catch (e) {
+    const m = String(e && e.message || e);
+    let hint = '';
+    if (/401|403|WRONGPASS|Unauthorized|auth/i.test(m)) hint = ' | Token səhvdir. REST token-i yenidən kopyala (read-only deyil, əsas token olsun)';
+    else if (/ENOTFOUND|fetch failed|getaddrinfo/i.test(m + (e.cause ? String(e.cause) : ''))) hint = ' | Ünvan tapılmadı. REST URL-i yoxla (' + host + ')';
+    else if (/abort|timeout/i.test(m)) hint = ' | Baza cavab vermir (vaxt bitdi)';
+    return 'XƏTA: ' + m + hint;
+  }
 }
 async function getAcc(k) {
   if (accounts[k]) return accounts[k];
@@ -85,6 +110,7 @@ async function dbPush() {
 }
 function putAcc(k, a) { accounts[k] = a; persist(); if (hasDb) { dirty.add(k); dbPush(); } }
 if (hasDb) { Object.keys(accounts).forEach(function (k) { dirty.add(k); }); dbPush(); }
+if (hasDb) dbCheck().then(function (t) { console.log('Baza yoxlaması: ' + t); });
 console.log(hasDb ? 'Hesab bazası: Upstash (davamlı)' : 'DİQQƏT: davamlı baza qurulmayıb, hesablar müvəqqəti fayldadır');
 
 async function account(c, m) {
@@ -126,6 +152,7 @@ let nextId = 1;
 
 const server = http.createServer((req, res) => {
   const p = req.url.split('?')[0];
+  if (p === '/dbcheck') { dbCheck().then(function (t) { res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(t); }); return; }
   if (p === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end(hasDb ? 'ok db' : 'ok nodb'); return; }
   const st = STATIC[p];
   if (st) { res.writeHead(200, { 'Content-Type': st.type, 'Cache-Control': p === '/sw.js' ? 'no-cache' : 'public, max-age=3600' }); res.end(st.data); return; }
