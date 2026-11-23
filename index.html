@@ -2,6 +2,11 @@
 <html lang="az">
 <head>
 <meta charset="utf-8">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0e161c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Açıq Yol Yarışı</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -117,6 +122,7 @@ body.touch.playing .pad{display:flex}
 #acTabs button[aria-pressed="true"]{background:var(--signal);color:#1a1500;border-color:transparent}
 #pin,#pin2{width:100%;margin-top:8px;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px;color:inherit;-webkit-user-select:text;user-select:text}
 #acSt{margin-top:8px;font-size:12.5px;line-height:1.4;color:var(--dim)}
+#acCode{width:100%;margin-top:8px;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12px;color:inherit;-webkit-user-select:text;user-select:text;resize:vertical}
 #acRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 #acRow button{background:none;border:1px solid var(--line);border-radius:8px;color:var(--dim);padding:6px 10px;font-size:12.5px;cursor:pointer}
 #netnote{margin-top:10px;font-size:13px;color:var(--dim);line-height:1.5}
@@ -427,7 +433,7 @@ body.compact #tDone{margin-top:9px}
   <p>Yevlax şəhəri · açıq dünya · dostlarınla online sür</p>
   <div class="chips2"><i>Polis təqibi</i><i>Göy parkurları</i><i>Modifiye</i><i>Online dostlar</i></div>
   <button id="spGo" class="mb primary" type="button">OYNA</button>
-  <div id="spSub"></div></div><div id="verTag" style="position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;color:var(--dim);opacity:.8">Versiya V38 · zədə, tapşırıqlar, neon</div></div>
+  <div id="spSub"></div></div><div id="verTag" style="position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;color:var(--dim);opacity:.8">Versiya V41 · zədə, tapşırıqlar, neon</div></div>
 
 <div id="padL" class="pad">
   <button class="pb" data-k="left" type="button" aria-label="Sola">◀</button>
@@ -451,7 +457,8 @@ body.compact #tDone{margin-top:9px}
       <input id="pin" type="password" maxlength="20" autocomplete="off" placeholder="Şifrə (ən azı 4 simvol)">
       <input id="pin2" type="password" maxlength="20" autocomplete="off" placeholder="Şifrəni təkrarla" hidden>
       <div id="acSt"></div>
-      <div id="acRow"><button id="acPw" type="button" hidden>Şifrəni dəyiş</button><button id="acOut" type="button" hidden>Hesabdan çıx</button><button id="acGuest" type="button">Hesabsız oyna</button></div>
+      <div id="acRow"><button id="acPw" type="button" hidden>Şifrəni dəyiş</button><button id="acOut" type="button" hidden>Hesabdan çıx</button><button id="acGuest" type="button">Hesabsız oyna</button><button id="acBk" type="button">Ehtiyat kodu</button><button id="acRs" type="button">Kodla bərpa</button></div>
+      <textarea id="acCode" rows="3" hidden placeholder="Ehtiyat kodunu bura yapışdır, sonra 'Kodla bərpa' bas"></textarea>
     </div>
     <label>Maşının rəngi</label>
     <div id="sw" role="group" aria-label="Maşının rəngi"></div>
@@ -1869,6 +1876,7 @@ function acRefresh(){
   if(logged)t='Hesab: '+(profs[cloud.key]&&profs[cloud.key].n||cloud.key)+'. Balans və maşınlar serverdə saxlanır'+(cloud.saved?' (son saxlama '+new Date(cloud.saved).toTimeString().slice(0,5)+')':'')+'.';
   else if(cloud.guest)t='Hesabsız rejim: irəliləyiş yalnız bu cihazda qalır.';
   else t=reg?'Yeni hesab: ad (3+ simvol) və şifrə yaz. Bu adla bu cihazdakı irəliləyiş hesaba köçürülür.':'Hesaba daxil ol: balans və maşınların hər cihazda eynidir.';
+  if(window.__srvDb===0&&cloudAvail())t+=' ⚠ Serverin yaddaşı müvəqqətidir, hesab silinə bilər. "Ehtiyat kodu" düyməsi ilə kodu saxla.';
   $('acSt').textContent=t;
   if(!state.started&&own(state.pick))$('go').textContent=acGoTxt();
 }
@@ -1904,7 +1912,7 @@ function cloudLinked(nm,pin){
   try{pins[cloud.key]=pin;localStorage.setItem('acikyol2_pin',JSON.stringify(pins));localStorage.setItem('acikyol2_user',nm);}catch(e){}
   acRefresh();
 }
-var AC_ERR={name:'Ad ən azı 3 simvol olmalıdır',short:'Şifrə ən azı 4 simvol olmalıdır',slow:'Çox cəhd oldu. 1 dəqiqə gözlə',exists:'Bu ad tutulub. Başqa ad seç və ya Giriş et',nouser:'Belə hesab yoxdur. Qeydiyyat bölməsinə keç',bad:'Şifrə səhvdir',full:'Serverdə yer qalmayıb',err:'Hesab məlumatı düzgün deyil',off:'Hesab serverinə qoşulmaq olmadı. Bir az sonra yenidən yoxla'};
+var AC_ERR={name:'Ad ən azı 3 simvol olmalıdır',short:'Şifrə ən azı 4 simvol olmalıdır',slow:'Çox cəhd oldu. 1 dəqiqə gözlə',exists:'Bu ad tutulub. Başqa ad seç və ya Giriş et',nouser:'Belə hesab yoxdur. Qeydiyyat bölməsinə keç',bad:'Şifrə səhvdir',full:'Serverdə yer qalmayıb',err:'Hesab məlumatı düzgün deyil',dberr:'Server bazasına qoşulmaq olmadı. Bir az sonra yenidən yoxla (məlumatın silinməyib)',off:'Hesab serverinə qoşulmaq olmadı. Bir az sonra yenidən yoxla'};
 function autoLogin(){
   if(cloud.pin||cloud.guest||cloud.busy||!cloudAvail())return;
   var nm='';try{nm=localStorage.getItem('acikyol2_user')||'';}catch(e){}
@@ -2180,7 +2188,7 @@ function stepCar(dt){
   if(fuelOf(state.model)<=0)thr=0;
   var CM=CARS[state.model]||CARS[0];
   var grass=car.y<0.3&&!onRoad(car.x,car.z);
-  boosting=keys.boost&&nitro>0.02&&thr>0&&!car.air;
+  boosting=keys.boost&&nitro>0.02&&thr>=0&&!car.air;
   nitro=clamp(nitro+(boosting?-0.28:0.09)*dt,0,1);
   var maxS=(boosting?1.2:1)*CM.kmh/3.6*(1+0.04*MOD(state.model).e)*(grass?0.62:1);
   var DM=dmgOf();maxS*=1-0.3*DM/100;
@@ -2195,7 +2203,7 @@ function stepCar(dt){
   vf=car.vx*fx+car.vz*fz;
   var vl=car.vx*lx+car.vz*lz;
   if(!car.air){
-    if(thr>0){vf+=(boosting?42:24)*CM.acc*(1-0.25*DM/100)*(1+0.08*MOD(state.model).e)*dt*Math.max(0,1-vf/maxS);}
+    if(thr>0||(boosting&&thr===0)){vf+=(boosting?42:24)*CM.acc*(1-0.25*DM/100)*(1+0.08*MOD(state.model).e)*dt*Math.max(0,1-vf/maxS);}
     else if(thr<0){if(vf>0.8)vf-=52*dt;else vf-=13*dt*Math.max(0,1+vf/12);}
     else{var fr=6*dt;if(Math.abs(vf)<=fr)vf=0;else vf-=(vf>0?1:-1)*fr;}
     if(keys.hb)vf*=Math.max(0,1-0.9*dt);
@@ -2230,7 +2238,7 @@ function stepCar(dt){
     car.x+=nx*pen;car.z+=nz*pen;
     var vn=car.vx*nx+car.vz*nz;
     if(vn<0){
-      if(-vn>3)addDmg(-vn*(soft?0.35:0.9));
+      if(-vn>6)addDmg(-vn*(soft?0.03:0.12));
       if((!soft||ev)&&-vn>(soft?4.5:6))crashEvent(-vn);
       shake=Math.max(shake,Math.min(1,-vn/30));
       var e=soft?0:0.25;
@@ -2773,7 +2781,7 @@ function makeNet(){
     ws.onopen=function(){open=true;tries=0;emitConn();};
     ws.onmessage=function(ev){
       var m;try{m=JSON.parse(ev.data);}catch(e){return;}
-      if(m.t==='hello'){if((m.v||0)<5&&!window.__oldSrv){window.__oldSrv=1;setTimeout(function(){toast('Server köhnədir! server.js faylını GitHub-a yüklə (parkur və çat üçün)');},2500);}peers={};(m.peers||[]).forEach(function(p){peers[p.i]=p.d;});emitPeers();}
+      if(m.t==='hello'){window.__srvDb=m.db?1:0;try{if(typeof acRefresh==='function')acRefresh();}catch(e){}if((m.v||0)<5&&!window.__oldSrv){window.__oldSrv=1;setTimeout(function(){toast('Server köhnədir! server.js faylını GitHub-a yüklə (parkur və çat üçün)');},2500);}peers={};(m.peers||[]).forEach(function(p){peers[p.i]=p.d;});emitPeers();}
       else if(m.t==='u'){peers[m.i]=m.d;emitPeers();}
       else if(m.t==='l'){delete peers[m.i];emitPeers();}
       else if(m.t==='ld'||m.t==='sv'||m.t==='rg'||m.t==='pw'){var cb=cw[m.t];if(cb){cw[m.t]=null;cb(m);}}
@@ -3006,6 +3014,26 @@ $('acPw').addEventListener('click',function(){
     if(m&&m.r==='ok'){cloud.pin=np;try{pins[cloud.key]=np;localStorage.setItem('acikyol2_pin',JSON.stringify(pins));}catch(e){}$('pin2').value='';toast('Şifrə dəyişdi');}
     else toast(AC_ERR[m&&m.r]||AC_ERR.off);
   });
+});
+$('acBk').addEventListener('click',function(){
+  try{if(state.started)save();}catch(e){}
+  var d=profs[pkey(state.name)];if(!d){toast('Əvvəl oyuna başla, sonra kod yaranır');return;}
+  var code='AYY1.'+btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+  var ta=$('acCode');ta.hidden=false;ta.value=code;try{ta.focus();ta.select();}catch(e){}
+  try{navigator.clipboard.writeText(code).then(function(){toast('Ehtiyat kodu kopyalandı. Təhlükəsiz yerdə saxla');},function(){toast('Kodu görünən xanadan kopyala');});}catch(e){toast('Kodu görünən xanadan kopyala');}
+});
+$('acRs').addEventListener('click',function(){
+  var ta=$('acCode'),v=String(ta.value||'').trim();
+  if(!v||ta.hidden){ta.hidden=false;ta.value='';try{ta.focus();}catch(e){}toast('Kodu yapışdır və yenidən "Kodla bərpa" bas');return;}
+  var d=null;
+  try{if(v.indexOf('AYY1.')!==0)throw 0;d=JSON.parse(decodeURIComponent(escape(atob(v.slice(5)))));}catch(e){d=null;}
+  if(!d||typeof d!=='object'||typeof d.n!=='string'||!cleanName(d.n)){toast('Kod düzgün deyil');return;}
+  var key=pkey(d.n);profs[key]=d;
+  try{localStorage.setItem('acikyol2',JSON.stringify(profs));}catch(e){}
+  $('nm').value=cleanName(d.n);
+  if(key===pkey(state.name)){applyProfile(d);state.pick=state.model;}
+  ta.hidden=true;ta.value='';
+  toast('Bərpa olundu: '+cleanName(d.n)+'. İndi Giriş və ya Qeydiyyat et');
 });
 window.addEventListener('pagehide',function(){cloudSync(true);});
 acRefresh();
@@ -3353,8 +3381,10 @@ function crHud(){
 var NEONS=[0,0x2f9bff,0xff3fa4,0x2ee6a1,0xff3b30,0xa06bff],NEONN=['Söndürülüb','Mavi','Çəhrayı','Yaşıl','Qırmızı','Bənövşəyi'];
 var cleanT=0,dqAcc=0,topDone=false,dqT=0,smk=[],smkN=0;
 function dmgOf(m){return state.dmg[m===undefined?state.model:m]||0;}
+var dmgLast=0;
 function addDmg(x){
   if(race.on||!state.started||state.garage)return;
+  var nw=Date.now();if(nw-dmgLast<1000)return;dmgLast=nw;
   var m=state.model,o=dmgOf(m),n=Math.min(100,o+x);state.dmg[m]=n;cleanT=0;
   if(o<50&&n>=50)toast('Maşın zədələndi, sürət azalır. Menyu › Təmir');
   if(o<80&&n>=80)toast('Maşın çox zədəlidir! Menyu › Təmir');
@@ -4041,5 +4071,6 @@ document.addEventListener('visibilitychange',function(){
 window.addEventListener('pageshow',function(e){if(e.persisted)showSplash();});
 })();
 </script>
+<script>if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}</script>
 </body>
 </html>
