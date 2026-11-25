@@ -1964,7 +1964,10 @@ function cloudAdopt(d,key,force){
 /* adı serverdə axtar: varsa irəliləyişi gətir, yoxdursa yerli məlumatı serverə yaz */
 function cloudLink(nm,done){
   var key=pkey(nm);
-  if(!cloudAvail()||cloud.busy||nm.length<3){done&&done(false);return;}
+  cloud.why='';
+  if(!cloudAvail()){cloud.why='Server ilə əlaqə yoxdur';done&&done(false);return;}
+  if(nm.length<3){cloud.why='Ad ən az 3 simvol olmalıdır';done&&done(false);return;}
+  if(cloud.busy){cloud.why='Əvvəlki sorğu hələ bitməyib, 5 saniyə gözlə';done&&done(false);return;}
   cloud.busy=true;
   room.cloud({t:'ln',n:nm},function(m){
     cloud.busy=false;
@@ -1977,7 +1980,7 @@ function cloudLink(nm,done){
       setTimeout(mkClaim,1500);
       done&&done(true,ad);
     }else{
-      if(r==='dberr')toast('Server bazasına qoşulmaq olmadı. Yerli hesabla davam edirəm');
+      cloud.why=r==='dberr'?'Server bazaya qoşulmayıb (Upstash ayarı)':r==='off'||!r?'Server cavab vermir: Render-də server.js köhnədir və ya server yuxudadır':r==='slow'?'Çox sorğu, 1 dəqiqə gözlə':r==='name'?'Ad ən az 3 simvol olmalıdır':'Xəta: '+r;
       done&&done(false);
     }
   });
@@ -3624,7 +3627,7 @@ function mkEnsure(cb){
   if(!cloudAvail()){toast('Server ilə əlaqə yoxdur. Bir az gözlə və yenidən cəhd et');return;}
   if(cloud.key){cb();return;}
   toast('Hesab serverdə yoxlanılır…');
-  cloudLink(state.name,function(ok){if(ok&&cloud.key)cb();else toast('Hesab serverə qoşulmadı. Yenidən cəhd et (server.js yenidirmi?)');});
+  cloudLink(state.name,function(ok){if(ok&&cloud.key)cb();else toast('Hesab qoşulmadı: '+(cloud.why||'naməlum səbəb'));});
 }
 function openMk(){mkEnsure(function(){mkL=null;mkMsg='';showFM('mk');mkRefresh();mkClaim();});}
 $('mkBtn').addEventListener('click',function(){if(canMk())openMk();});
