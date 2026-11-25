@@ -40,7 +40,12 @@ function cleanProfile(d) {
   return JSON.parse(t);
 }
 /* ---- davamlı baza (Upstash Redis REST). Qurulmayıbsa fayl istifadə olunur (Render-də müvəqqəti!) ---- */
-function cleanEnv(v) { return String(v || '').trim().replace(/^["']+|["']+$/g, '').trim(); }
+function cleanEnv(v) {
+  let t = String(v || '').trim();
+  const m = t.match(/^[A-Za-z_]+\s*=\s*([\s\S]*)$/);   // "ADI=dəyər" yapışdırılıbsa adı at
+  if (m) t = m[1].trim();
+  return t.replace(/^[\s"']+|[\s"']+$/g, '');
+}
 let DB_URL = cleanEnv(process.env.UPSTASH_REDIS_REST_URL || process.env.DB_URL);
 let DB_TOKEN = cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN || process.env.DB_TOKEN);
 (function fixDb() {
@@ -112,6 +117,77 @@ function putAcc(k, a) { accounts[k] = a; persist(); if (hasDb) { dirty.add(k); d
 if (hasDb) { Object.keys(accounts).forEach(function (k) { dirty.add(k); }); dbPush(); }
 if (hasDb) dbCheck().then(function (t) { console.log('Baza yoxlaması: ' + t); });
 console.log(hasDb ? 'Hesab bazası: Upstash (davamlı)' : 'DİQQƏT: davamlı baza qurulmayıb, hesablar müvəqqəti fayldadır');
+
+/* ---- maşın bazarı ---- */
+async function marketMsg(c, m) {
+  const rep = (r, extra) => send(c, Object.assign({ t: m.t, r: r }, extra || {}));
+  const now = Date.now();
+  if (now - (c.mkT || 0) > 60000) { c.mkT = now; c.mkN = 0; }
+  if (++c.mkN > 60) { rep('slow'); return; }
+  const k = akey(m.n);
+  if (!k || k.length < 3) { rep('name'); return; }
+  const key = 'n:' + k;
+  let mk, a;
+  try { mk = await getAcc('market'); a = await getAcc(key); } catch (e) { rep('dberr'); return; }
+  if (!mk) mk = { t: 0, l: [] };
+  if (!Array.isArray(mk.l)) mk.l = [];
+  if (m.t === 'ml') { rep('ok', { l: mk.l }); return; }
+  if (!a) { rep('noacc'); return; }
+  if (m.t === 'mx') {
+    const amt = Math.floor(a.cr || 0);
+    if (amt > 0) { a.cr = 0; putAcc(key, a); }
+    rep('ok', { amt: amt }); return;
+  }
+  if (m.t === 'mp') {
+    const car = Math.floor(Number(m.car)), price = Math.floor(Number(m.price));
+    if (!(car >= 1 && car <= 9) || !(price >= 100 && price <= 5000000)) { rep('err'); return; }
+    if (mk.l.filter(function (x) { return x.s === k; }).length >= 5) { rep('limit'); return; }
+    if (mk.l.length >= 300) { rep('full'); return; }
+    const it = { id: Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), s: k, sn: String(m.n).replace(/[<>]/g, '').slice(0, 14), car: car, price: price, t: Date.now() };
+    mk.l.push(it); mk.t = Date.now(); putAcc('market', mk);
+    rep('ok', { id: it.id, l: mk.l }); return;
+  }
+  const i = mk.l.findIndex(function (x) { return x.id === m.id; });
+  if (i < 0) { rep('gone', { l: mk.l }); return; }
+  const it = mk.l[i];
+  if (m.t === 'mc') {
+    if (it.s !== k) { rep('err'); return; }
+    mk.l.splice(i, 1); mk.t = Date.now(); putAcc('market', mk);
+    rep('ok', { car: it.car, l: mk.l }); return;
+  }
+  if (m.t === 'mb') {
+    if (it.s === k) { rep('own'); return; }
+    let sa;
+    try { sa = await getAcc('n:' + it.s); } catch (e) { rep('dberr'); return; }
+    const j = mk.l.indexOf(it);
+    if (j < 0) { rep('gone', { l: mk.l }); return; }
+    if (!sa) { mk.l.splice(j, 1); putAcc('market', mk); rep('gone', { l: mk.l }); return; }
+    mk.l.splice(j, 1); mk.t = Date.now(); putAcc('market', mk);
+    sa.cr = Math.floor((sa.cr || 0) + it.price); putAcc('n:' + it.s, sa);
+    rep('ok', { car: it.car, price: it.price, l: mk.l }); return;
+  }
+  rep('err');
+}
+
+async function nameAcc(c, m) {
+  const k = akey(m.n);
+  const rep = (r, extra) => send(c, Object.assign({ t: m.t, r: r }, extra || {}));
+  if (!k || k.length < 3) { rep('name'); return; }
+  const now = Date.now();
+  if (now - (c.accT || 0) > 60000) { c.accT = now; c.accN = 0; }
+  if (++c.accN > 40) { rep('slow'); return; }
+  const key = 'n:' + k;
+  let a;
+  try { a = await getAcc(key); } catch (e) { rep('dberr'); return; }
+  if (m.t === 'ln') { if (!a) { rep('nouser'); return; } rep('ok', { d: a.d, ts: a.t }); return; }
+  const d = cleanProfile(m.d);
+  if (!d) { rep('err'); return; }
+  if (!a && !hasDb && Object.keys(accounts).length >= 3000) { rep('full'); return; }
+  if (a && ((typeof m.bs === 'number' && a.t > m.bs) || (a.d && a.d.ts && d.ts && d.ts < a.d.ts))) { rep('stale', { d: a.d, ts: a.t }); return; }
+  a = a || {};
+  a.d = d; a.t = Date.now();
+  putAcc(key, a); rep('ok', { ts: a.t });
+}
 
 async function account(c, m) {
   const k = akey(m.n), pin = typeof m.pin === 'string' ? m.pin.slice(0, 40) : '';
@@ -192,7 +268,7 @@ function clean(m) {
   return {
     n: typeof m.n === 'string' ? m.n.replace(/[^\p{L}\p{N} ._-]/gu, '').trim().slice(0, 14) : '',
     k: Math.round(num(m.k, 0, 7, 0)),
-    m: Math.round(num(m.m, 0, 3, 0)),
+    m: Math.round(num(m.m, 0, 9, 0)),
     p: Math.round(num(m.p, -1, 11, -1)),
     w: Math.round(num(m.w, 0, 4, 0)),
     s2: Math.round(num(m.s2, 0, 2, 0)),
@@ -236,10 +312,17 @@ function handle(c, text) {
     broadcast({ t: 'c', i: c.id, n: c.state.n, x: msg }, c);
     return;
   }
-  if (text.length < 4000 && text.charAt(0) === '{' && /"t":"(ld|sv|rg|pw)"/.test(text)) {
+  if (text.length < 400 && text.charAt(0) === '{' && /"t":"(ml|mp|mb|mc|mx)"/.test(text)) {
+    let mm;
+    try { mm = JSON.parse(text); } catch (e) { return; }
+    if (mm && typeof mm.n === 'string') marketMsg(c, mm);
+    return;
+  }
+  if (text.length < 4000 && text.charAt(0) === '{' && /"t":"(ld|sv|rg|pw|ln|sn)"/.test(text)) {
     let am;
     try { am = JSON.parse(text); } catch (e) { return; }
-    if (am && (am.t === 'ld' || am.t === 'sv' || am.t === 'rg' || am.t === 'pw')) account(c, am);
+    if (am && (am.t === 'ln' || am.t === 'sn')) nameAcc(c, am);
+    else if (am && (am.t === 'ld' || am.t === 'sv' || am.t === 'rg' || am.t === 'pw')) account(c, am);
     return;
   }
   if (now - c.last < 30) return;
@@ -300,7 +383,7 @@ server.on('upgrade', (req, socket) => {
 
   const others = [];
   for (const o of clients.values()) if (o !== c && o.state) others.push({ i: o.id, d: o.state });
-  send(c, { t: 'hello', i: id, v: 5, db: hasDb ? 1 : 0, peers: others });
+  send(c, { t: 'hello', i: id, v: 6, db: hasDb ? 1 : 0, peers: others });
 
   socket.on('data', (chunk) => {
     c.buf = Buffer.concat([c.buf, chunk]);
