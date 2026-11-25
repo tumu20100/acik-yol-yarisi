@@ -3620,7 +3620,13 @@ function fsLabel(){var b=$('bFull');if(b)b.textContent=fsEl()?'Tam ekrandan çı
 document.addEventListener('fullscreenchange',fsLabel);document.addEventListener('webkitfullscreenchange',fsLabel);
 $('bFull').addEventListener('click',function(){closeMenu();fsToggle();});
 $('bDQ').addEventListener('click',function(){closeMenu();showFM('dq');});
-function openMk(){if(!mkOk()){toast('Bazar yalnız onlayn serverdə işləyir');return;}mkL=null;mkMsg='';showFM('mk');mkRefresh();mkClaim();}
+function mkEnsure(cb){
+  if(!cloudAvail()){toast('Server ilə əlaqə yoxdur. Bir az gözlə və yenidən cəhd et');return;}
+  if(cloud.key){cb();return;}
+  toast('Hesab serverdə yoxlanılır…');
+  cloudLink(state.name,function(ok){if(ok&&cloud.key)cb();else toast('Hesab serverə qoşulmadı. Yenidən cəhd et (server.js yenidirmi?)');});
+}
+function openMk(){mkEnsure(function(){mkL=null;mkMsg='';showFM('mk');mkRefresh();mkClaim();});}
 $('mkBtn').addEventListener('click',function(){if(canMk())openMk();});
 $('bMk').addEventListener('click',function(){closeMenu();if(Math.hypot(car.x-MKP.x,car.z-MKP.z)>42){toast('Maşın bazarına get: xəritədə "Maşın bazarı" yazısı, şəhərin şərqində');return;}openMk();return;mkL=null;mkMsg='';showFM('mk');mkRefresh();mkClaim();});
 setInterval(function(){if(state.started&&mkOk())mkClaim();},60000);
