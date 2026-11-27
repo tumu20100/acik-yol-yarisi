@@ -99,6 +99,8 @@ body.touch.playing .pad{display:flex}
 .pb.nit.on{background:var(--beam)}
 
 /* start screen */
+#intro.m-garage .lgn{display:none!important}
+#intro:not(.m-garage) .grg,#intro:not(.m-garage) #buyBar{display:none!important}
 #intro{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:radial-gradient(ellipse at 50% 30%,rgba(10,16,20,.35),rgba(10,16,20,.82));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);overflow:auto}
 .card{width:min(440px,100%);background:rgba(13,19,23,.9);border:1px solid var(--line);border-radius:16px;padding:22px 20px 18px}
 .card h1{font:700 32px var(--f-disp);margin:0 0 4px;letter-spacing:.01em;text-wrap:balance}
@@ -186,8 +188,8 @@ body.touch #mv{font-size:24px}
 #chase{top:calc(var(--gt) + 92px);left:50%;transform:translateX(-50%);padding:7px 14px;font:700 14px var(--f-disp);letter-spacing:.08em;white-space:nowrap;border-color:#ff4d4d;animation:chaseP .5s steps(2) infinite}
 @keyframes chaseP{0%{box-shadow:0 0 0 2px rgba(255,40,40,.7)}100%{box-shadow:0 0 0 2px rgba(40,100,255,.7)}}
 @media (max-width:700px){#chase{left:50%;right:auto;transform:translateX(-50%);top:var(--gt);font-size:12px;padding:5px 10px}}
-#tuneBtn,#fuelBtn,#mkBtn{left:50%;bottom:calc(var(--gb) + 92px);transform:translateX(-50%);pointer-events:auto;text-align:center;white-space:nowrap}
-body.touch #tuneBtn,body.touch #fuelBtn,body.touch #mkBtn{bottom:calc(var(--gb) + 214px)}
+#tuneBtn,#fuelBtn,#mkBtn,#hsBtn{left:50%;bottom:calc(var(--gb) + 92px);transform:translateX(-50%);pointer-events:auto;text-align:center;white-space:nowrap}
+body.touch #tuneBtn,body.touch #fuelBtn,body.touch #mkBtn,body.touch #hsBtn{bottom:calc(var(--gb) + 214px)}
 #tune{position:fixed;z-index:24;left:0;right:0;bottom:0;max-height:54vh;overflow:auto;padding:0 12px max(12px,env(safe-area-inset-bottom,0px))}
 #tune .card{width:min(520px,100%);margin:0 auto;padding:14px 14px 12px}
 #tune h1{font-size:24px}
@@ -234,7 +236,7 @@ body.compact #fuelRow b{font-size:13px}
 body.compact .fbar{height:4px}
 body.compact #toast{font-size:12px;padding:5px 10px;top:calc(var(--gt) + 150px)}
 body.compact #chase{font-size:11px;padding:4px 9px;top:var(--gt);left:50%;right:auto;transform:translateX(-50%)}
-body.compact #tuneBtn,body.compact #fuelBtn,body.compact #mkBtn{font-size:12px;padding:8px 12px;bottom:calc(var(--gb) + 56px)}
+body.compact #tuneBtn,body.compact #fuelBtn,body.compact #mkBtn,body.compact #hsBtn{font-size:12px;padding:8px 12px;bottom:calc(var(--gb) + 56px)}
 body.compact .pb{width:52px;height:52px;border-radius:13px;font-size:11px}
 body.compact .pb.big{width:64px;height:64px;font-size:13px}
 body.compact .pb.sm{width:56px;height:36px;font-size:10px;border-radius:10px}
@@ -307,6 +309,7 @@ body.compact #tDone{margin-top:9px}
 #mis .ms{font:700 20px var(--f-disp);margin:2px 0}
 #mis .mr{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:#cdd8de}
 #mArr{width:20px;height:20px;transition:transform .08s linear}
+#menu .mb[hidden]{display:none!important}
 #menu .card{max-height:calc(100vh - 16px);overflow:auto}
 #lbList{display:grid;gap:4px;font-size:13px;padding:6px 4px;color:#d7e0e5}
 #lbList[hidden]{display:none}
@@ -373,7 +376,7 @@ body.compact #tDone{margin-top:9px}
       <button id="bCirc" class="mb" type="button">Dairəvi yarış (dostlarla)</button>
       <button id="bFull" class="mb" type="button">Tam ekran</button>
       <button id="bDQ" class="mb" type="button">Tapşırıqlar</button>
-      <button id="bStyle" class="mb" type="button">Bəzək və satış</button>
+      <button id="bStyle" class="mb" type="button" hidden>Bəzək və satış</button>
       <button id="bCR" class="mb" type="button">Polis–Qaçaq: söndürülüb</button>
       <button id="bNight" class="mb" type="button">Vaxt: avtomatik</button>
       <button id="bSnd" class="mb" type="button">Səs: açıq</button>
@@ -382,9 +385,9 @@ body.compact #tDone{margin-top:9px}
       <button id="bCam" class="mb" type="button">Kameranı dəyiş</button>
       <button id="bUI" class="mb" type="button">Interfeys ölçüsü: 100%</button>
       <button id="bQ" class="mb" type="button">Grafika: Yüksək</button>
-      <button id="bRes" class="mb" type="button">Maşını bərpa et</button>
-      <button id="bTut" class="mb" type="button">Necə oynanır</button>
-      <button id="mHelp" class="mb" type="button">İdarəetmə</button>
+      <button id="bRes" class="mb" type="button" hidden>Maşını bərpa et</button>
+      <button id="bTut" class="mb" type="button" hidden>Necə oynanır</button>
+      <button id="mHelp" class="mb" type="button" hidden>İdarəetmə</button>
     </div>
     <div id="mKeys" class="keys" hidden></div>
   </div>
@@ -430,12 +433,13 @@ body.compact #tDone{margin-top:9px}
 <button id="fuelBtn" class="hud mb primary" type="button" hidden>Benzin doldur</button>
 <button id="tuneBtn" class="hud mb primary" type="button" hidden>Modifiye</button>
 <button id="mkBtn" class="hud mb primary" type="button" hidden>Maşın bazarı</button>
+<button id="hsBtn" class="hud mb primary" type="button" hidden>Ev</button>
 <div id="splash"><div class="sun"></div><div class="road"></div><div class="sc">
   <h1>AÇIQ YOL <span>YARIŞI</span></h1>
   <p>Yevlax şəhəri · açıq dünya · dostlarınla online sür</p>
   <div class="chips2"><i>Polis təqibi</i><i>Göy parkurları</i><i>Modifiye</i><i>Online dostlar</i></div>
   <button id="spGo" class="mb primary" type="button">OYNA</button>
-  <div id="spSub"></div></div><div id="verTag" style="position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;color:var(--dim);opacity:.8">Versiya V45 · zədə, tapşırıqlar, neon</div></div>
+  <div id="spSub"></div></div><div id="verTag" style="position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));text-align:center;font-size:11px;color:var(--dim);opacity:.8">Versiya V49 · zədə, tapşırıqlar, neon</div></div>
 
 <div id="padL" class="pad">
   <button class="pb" data-k="left" type="button" aria-label="Sola">◀</button>
@@ -448,25 +452,25 @@ body.compact #tDone{margin-top:9px}
 
 <div id="intro">
   <div class="card">
-    <h1>Açıq Yol Yarışı</h1>
-    <p>Yevlax şəhərinin küçələrində, Kür çayı körpüsündə və magistrallarda sür, dostlarınla yarış et.</p>
+    <h1 id="inT">Açıq Yol Yarışı</h1>
+    <p class="lgn">Yevlax şəhərinin küçələrində, Kür çayı körpüsündə və magistrallarda sür, dostlarınla yarış et.</p>
     <div class="bal">Balans: <b id="balV">0</b> manat</div>
-    <label for="nm">Adın</label>
-    <input id="nm" maxlength="14" autocomplete="off" placeholder="Sürücü adı">
-    <div id="nmHint" style="margin-top:6px;font-size:12px;line-height:1.4;color:var(--dim)">Hər ad ayrı hesabdır: yeni ad 0 manatla və yalnız standart maşınla başlayır.</div>
-    <div id="pinW" hidden>
+    <label for="nm" class="lgn">Adın</label>
+    <input id="nm" class="lgn" maxlength="14" autocomplete="off" placeholder="Sürücü adı">
+    <div id="nmHint" class="lgn" style="margin-top:6px;font-size:12px;line-height:1.4;color:var(--dim)">Hər ad ayrı hesabdır: yeni ad 0 manatla və yalnız standart maşınla başlayır.</div>
+    <div id="pinW" class="lgn" hidden>
       <div id="acSt"></div>
       <div id="acRow"><button id="acBk" type="button">Ehtiyat kodu</button><button id="acRs" type="button">Kodla bərpa</button></div>
       <textarea id="acCode" rows="3" hidden placeholder="Ehtiyat kodunu bura yapışdır, sonra 'Kodla bərpa' bas"></textarea>
     </div>
-    <label>Maşının rəngi</label>
-    <div id="sw" role="group" aria-label="Maşının rəngi"></div>
-    <label>Maşın</label>
-    <div id="mp" role="group" aria-label="Maşın modeli"></div>
+    <label class="grg">Maşının rəngi</label>
+    <div id="sw" class="grg" role="group" aria-label="Maşının rəngi"></div>
+    <label class="grg">Maşın</label>
+    <div id="mp" class="grg" role="group" aria-label="Maşın modeli"></div>
     <div id="buyBar" hidden><span id="buyTxt"></span><button id="buyBtn" type="button">Al</button></div>
     <button id="go" type="button">Sürməyə başla</button>
-    <div id="netnote">Onlayn rejim yoxlanılır…</div>
-    <div class="keys" id="keysInfo"></div>
+    <div id="netnote" class="lgn">Onlayn rejim yoxlanılır…</div>
+    <div class="keys lgn" id="keysInfo"></div>
   </div>
 </div>
 
@@ -595,7 +599,7 @@ function canvasTex(c,rx,ry){var t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THR
 
 /* ---------- city ---------- */
 var colliders=[],trees=[],parks=[],treePts=[],bldMat=null;
-var deco=[],glassMat=null,lmLabels=[],flags=[],fountJets=[],LM=[],waterTex=null;
+var HB=[],deco=[],glassMat=null,lmLabels=[],flags=[],fountJets=[],LM=[],waterTex=null;
 var RIVER_Z=-540,RIVER_W=56,waterT=0;
 var M={
   stone:new THREE.MeshLambertMaterial({color:0xddd5c3}),
@@ -893,6 +897,7 @@ function buildCity(){
       }
     }
   }
+  HB=blds.filter(function(b){return b.k==='h';});
   var geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
@@ -1894,7 +1899,7 @@ function spinWheels(ud,v,dt,steer){
 }
 
 /* ---------- state ---------- */
-var state={started:false,name:'',color:1,model:0,pick:0,owned:[0],money:0,garage:false,menu:false,tune:false,map:false,mods:{},unl:{},fuels:{},best:{},filling:false,dmg:{},neon:0,kit:0,dq:null,sg:{}};
+var state={started:false,name:'',color:1,model:0,pick:0,owned:[0],money:0,garage:false,menu:false,tune:false,map:false,mods:{},unl:{},fuels:{},best:{},filling:false,dmg:{},neon:0,kit:0,dq:null,sg:{},hs:[]};
 var car={x:0,z:0,y:0,h:Math.PI/2,v:0,vx:0,vz:0,vl:0,vy:0,gv:0,air:false,pitch:0,steer:0,acc:0,obj:null};
 var keys={up:false,down:false,left:false,right:false,hb:false,boost:false};
 var nitro=1,boosting=false,shake=0,camH=car.h,camMode=0,muted=false;
@@ -1987,7 +1992,7 @@ var SGD={mis:{t:'İlk missiyanı tamamla',r:300},buy:{t:'Yeni maşın al',r:300}
 try{var po=JSON.parse(localStorage.getItem('acikyol2')||'null');if(po&&typeof po==='object'&&!Array.isArray(po))profs=po;}catch(e){}
 try{var oldSv=JSON.parse(localStorage.getItem('acikyol')||'null');if(oldSv&&oldSv.n&&!Object.keys(profs).length)profs[pkey(oldSv.n)]=oldSv;}catch(e){}
 function applyProfile(sv){
-  state.owned=[0];state.money=0;state.model=0;state.mods={};state.unl={};state.fuels={};state.best={};state.dmg={};state.neon=0;state.kit=0;state.dq=null;state.sg={};
+  state.owned=[0];state.money=0;state.model=0;state.mods={};state.unl={};state.fuels={};state.best={};state.dmg={};state.neon=0;state.kit=0;state.dq=null;state.sg={};state.hs=[];
   if(!sv||typeof sv!=='object')return;
   try{
     if(typeof sv.c==='number'&&sv.c>=0&&sv.c<PALETTE.length)state.color=Math.floor(sv.c);
@@ -1996,6 +2001,7 @@ function applyProfile(sv){
     if(typeof sv.m==='number'&&state.owned.indexOf(sv.m)>=0)state.model=sv.m;
     if(sv.md&&typeof sv.md==='object'){for(var mk0 in sv.md){var mi0=Number(mk0);if(!(mi0>=0&&mi0<CARS.length)||!sv.md[mk0])continue;var o0=sv.md[mk0];state.mods[mi0]={p:clamp(Math.floor(num(o0.p,-1)),-1,PAINTS.length-1),w:clamp(Math.floor(num(o0.w,0)),0,4),s:clamp(Math.floor(num(o0.s,0)),0,2),g:clamp(Math.floor(num(o0.g,0)),0,5),e:clamp(Math.floor(num(o0.e,0)),0,3)};}}
     if(sv.dg&&typeof sv.dg==='object'){for(var dk in sv.dg){var di=Number(dk),dv=sv.dg[dk];if(di>=0&&di<CARS.length&&typeof dv==='number'&&isFinite(dv))state.dmg[di]=clamp(dv,0,100);}}
+    if(Array.isArray(sv.hs))sv.hs.forEach(function(x){if(typeof x==='number'&&x>=0&&x<40&&state.hs.indexOf(Math.floor(x))<0)state.hs.push(Math.floor(x));});
     if(typeof sv.nk==='number'&&sv.nk>0)state.kit=1;
     if(typeof sv.ne==='number'&&sv.ne>=0&&sv.ne<=5)state.neon=Math.floor(sv.ne);
     if(sv.sg&&typeof sv.sg==='object'){for(var gk in sv.sg)if(SGD&&SGD[gk]&&sv.sg[gk])state.sg[gk]=1;}
@@ -2079,7 +2085,7 @@ function save(){
   try{
     var k=pkey(state.name);if(!k)return;
     delete profs[k];
-    profs[k]={n:state.name,c:state.color,m:state.model,ts:Date.now(),p:Math.floor(state.money*100)/100,o:state.owned,md:state.mods,u:Object.keys(state.unl),f:state.fuels,bt:state.best,dg:state.dmg,ne:state.neon,nk:state.kit,sg:state.sg,dq:state.dq};
+    profs[k]={n:state.name,c:state.color,m:state.model,ts:Date.now(),p:Math.floor(state.money*100)/100,o:state.owned,md:state.mods,u:Object.keys(state.unl),f:state.fuels,bt:state.best,dg:state.dmg,ne:state.neon,nk:state.kit,sg:state.sg,dq:state.dq,hs:state.hs};
     var ks=Object.keys(profs);while(ks.length>20){delete profs[ks.shift()];}
     localStorage.setItem('acikyol2',JSON.stringify(profs));localStorage.setItem('acikyol2_last',k);
   }catch(e){}
@@ -2717,7 +2723,7 @@ function stepFuel(dt){
   var fb=$('fuelBtn');
   var show=state.filling||canFill();
   fb.hidden=!show;
-  var tb=$('tuneBtn');tb.hidden=!canTune();$('mkBtn').hidden=!canMk()||!tb.hidden;
+  var tb=$('tuneBtn');tb.hidden=!canTune();$('mkBtn').hidden=!canMk()||!tb.hidden;var nh=canHouse();$('hsBtn').hidden=!nh||!tb.hidden||!$('mkBtn').hidden;if(nh)$('hsBtn').textContent=state.hs.indexOf(nh.i)>=0?'Evim':'Evi al: '+fmtM(nh.price)+' manat';
   if(show)fb.textContent=state.filling?(TOUCH?'Doldurulur… dayandır':'Doldurulur… dayandır (F)'):(TOUCH?'Benzin doldur · 10 manat/L':'Benzin doldur (F) · 10 manat/L');
 }
 function updateFuelHud(){
@@ -3087,7 +3093,7 @@ function begin0(){
     audioStart();
     if(actx&&actx.state==='suspended'){try{actx.resume();}catch(e){}}
   }
-  state.garage=false;$('intro').hidden=true;applyView();
+  state.garage=false;$('intro').hidden=true;$('intro').classList.remove('m-garage');$('inT').textContent='Açıq Yol Yarışı';applyView();
   sendPresence();
 }
 function begin(){
@@ -3590,6 +3596,24 @@ function fmRender(){
     if(q)for(var i=0;i<3;i++){var df=DQD[q.p[i]],pr=q.c[i]?'tamam':(df.n>=10?Math.floor(q.v[i]):Math.floor(q.v[i]*10)/10)+'/'+df.n;fmRow(B,(q.c[i]?'✓ ':'')+df.t+' ('+pr+') · '+df.r+' manat');}
     fmHead(B,'Başlanğıc məqsədləri');
     Object.keys(SGD).forEach(function(k){fmRow(B,(state.sg[k]?'✓ ':'')+SGD[k].t+' · '+SGD[k].r+' manat');});
+  }else if(fmKind==='hs'&&hsCur){
+    var H=hsCur,mine=state.hs.indexOf(H.i)>=0;
+    $('fmT').textContent=H.n;
+    fmRow(B,(H.zone===0?'Mərkəzə yaxın, çox bahalı ev':H.zone===1?'Orta rayonda ev':'Şəhər kənarında ucuz ev')+' · qiymət '+fmtM(H.price)+' manat');
+    fmRow(B,'Kirayə gəliri: saniyədə +'+Math.max(1,Math.round(H.price/1000))+' manat (oyunda olduğun müddətdə)');
+    if(!mine){
+      fmRow(B,'Balans: '+fmtM(Math.floor(state.money))+' manat','Al',function(){
+        if(Math.floor(state.money)<H.price){toast('Pul çatmır');return;}
+        state.money-=H.price;state.hs.push(H.i);save();hsRelabel(H);toast(H.n+' alındı! Kirayə gəliri başladı');fmRender();
+      },Math.floor(state.money)<H.price);
+    }else{
+      var sp=Math.floor(H.price*0.6);
+      fmRow(B,'Bu ev sənindir.');
+      fmRow(B,hsArm?'Əminsən? Bir də bas: '+fmtM(sp)+' manat':'Evi sat ('+fmtM(sp)+' manat, qiymətin 60%-i)',hsArm?'Bəli, sat':'Sat',function(){
+        if(!hsArm){hsArm=true;fmRender();return;}
+        state.hs.splice(state.hs.indexOf(H.i),1);state.money+=sp;hsArm=false;save();hsRelabel(H);toast('Ev satıldı: +'+fmtM(sp)+' manat');fmRender();
+      });
+    }
   }else if(fmKind==='mk'){
     $('fmT').textContent='Maşın bazarı';
     mkRender(B);
@@ -3695,7 +3719,7 @@ function showFM(kind){
   for(var k in keys)keys[k]=false;
   fmRender();$('fm').hidden=false;
 }
-function hideFM(){if(!fmOn)return;fmOn=false;$('fm').hidden=true;state.menu=fmWas;}
+function hideFM(){hsArm=false;if(!fmOn)return;fmOn=false;$('fm').hidden=true;state.menu=fmWas;}
 $('fmX').addEventListener('click',hideFM);
 function fsEl(){return document.fullscreenElement||document.webkitFullscreenElement||null;}
 function fsToggle(){
@@ -3744,6 +3768,48 @@ function canMk(){return state.started&&Math.hypot(car.x-MKP.x,car.z-MKP.z)<42&&M
   var tp=new THREE.Mesh(new THREE.BoxGeometry(3,0.02,3),new THREE.MeshBasicMaterial({color:0x2ee6a1}));
   landmarkLabel('Maşın bazarı',MKP.x,13,MKP.z+2);
 })();
+
+
+/* ---- satılan evlər ---- */
+var HOUSES=[],hsCur=null,hsArm=false;
+function houseInc(){var t=0;for(var i=0;i<state.hs.length;i++){var H=HOUSES[state.hs[i]];if(H)t+=Math.max(1,Math.round(H.price/1000));}return t;}
+function hsRelabel(H){
+  if(H.sp){scene.remove(H.sp);}
+  var own0=state.hs.indexOf(H.i)>=0;
+  var sp=makeLabel(own0?'Sənin evin':'Satılır · '+fmtM(H.price)+' ₼');
+  sp.position.set(H.x,H.top+3.2,H.z);scene.add(sp);H.sp=sp;
+  H.lm.t=own0?'Sənin evin':'Ev '+fmtM(H.price);
+}
+(function(){
+  var cand=HB.map(function(b){return {b:b,d:Math.hypot(b.cx,b.cz)};}),got=[];
+  function pick(lo,hi,n,zone){
+    var pool=cand.filter(function(c){return c.d>=lo&&c.d<hi&&Math.abs(c.b.cx)>28&&Math.abs(c.b.cz)>28;});
+    pool.sort(function(a,b){return ((a.b.cx*13+a.b.cz*7)%97)-((b.b.cx*13+b.b.cz*7)%97);});
+    var k=0;
+    for(var i=0;i<pool.length&&k<n;i++){
+      var c=pool[i],far=true;
+      for(var j=0;j<got.length;j++)if(Math.hypot(got[j].b.cx-c.b.cx,got[j].b.cz-c.b.cz)<75){far=false;break;}
+      if(!far)continue;c.zone=zone;got.push(c);k++;
+    }
+  }
+  pick(0,170,3,0);pick(170,330,5,1);pick(330,700,5,2);
+  got.forEach(function(c,i){
+    var price=c.zone===0?100000:c.zone===1?Math.max(25000,Math.min(50000,Math.round((25000+(330-c.d)/160*25000)/500)*500)):Math.max(5000,Math.min(10000,Math.round((5000+(560-c.d)/230*5000)/500)*500));
+    var b=c.b,H={i:i,x:b.cx,z:b.cz,top:b.h+(b.rh||0),price:price,zone:c.zone,n:'Ev №'+(i+1)};
+    H.lm={x:b.cx,z:b.cz,t:''};LM.push(H.lm);
+    HOUSES.push(H);hsRelabel(H);
+  });
+})();
+function nearHouse(){
+  var best=null,bd=34;
+  for(var i=0;i<HOUSES.length;i++){var H=HOUSES[i],d=Math.hypot(car.x-H.x,car.z-H.z);if(d<bd){bd=d;best=H;}}
+  return best;
+}
+function canHouse(){
+  if(!state.started||Math.abs(car.v)>=6||state.garage||state.menu||race.on||splOn||tutOn||fmOn)return null;
+  return nearHouse();
+}
+$('hsBtn').addEventListener('click',function(){var H=canHouse();if(H){hsCur=H;hsArm=false;showFM('hs');}});
 
 /* ---- təlimat ---- */
 var tutOn=false,tutWas=false;
@@ -4043,6 +4109,7 @@ function openGarage(){
   for(var k in keys)keys[k]=false;
   state.garage=true;state.pick=state.model;
   $('nm').value=state.name;refreshGarage();
+  $('intro').classList.add('m-garage');$('inT').textContent='Qaraj';
   $('intro').hidden=false;rebuildCar(state.pick);applyView();
 }
 function leaveGarage(){state.pick=state.model;begin();}
@@ -4190,7 +4257,7 @@ function updateHud(now){
   if(hudN%4===0){
     $('sv').textContent=kmh;$('nb').style.transform='scaleX('+nitro.toFixed(2)+')';
     $('mv').textContent=fmtM(Math.floor(state.money));
-    $('mr').textContent='+'+CARS[state.model].inc+' manat/san';
+    $('mr').textContent='+'+CARS[state.model].inc+' manat/san'+(state.hs.length?' · ev +'+houseInc():'');
     $('mr').className=Math.abs(car.v)>1?'on':'';
   }
   if(hudN%3===0){
@@ -4223,6 +4290,7 @@ function frame(now){
 
   if(state.started){
     if(!state.garage&&!state.menu&&Math.abs(car.v)>1)state.money+=CARS[state.model].inc*dt;
+    if(!state.garage&&!state.menu&&state.hs.length)state.money+=houseInc()*dt;
     saveT+=dt;if(saveT>3){saveT=0;save();}
     stepCar(dt);raceStep(now);updateRaceFx(dt);updateFx(dt);stepAI(dt);stepFuel(dt);featStep(dt,now);
     var slipping=!car.air&&car.y<0.2&&onRoad(car.x,car.z)&&(Math.abs(car.vl)>3.4||(keys.down&&car.v>14)||(keys.hb&&Math.abs(car.v)>9));
